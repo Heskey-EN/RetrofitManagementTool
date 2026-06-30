@@ -1,0 +1,15 @@
+import { storeMode } from '../lib/jobsStore'
+
+// Tells the user whether they have true multi-user sync (Supabase) or are in
+// the local-only fallback. Only shown in local mode so it stays out of the way
+// once Supabase is configured.
+export default function ConnectionBanner() {
+  if (storeMode === 'supabase') return null
+  return (
+    <div className="banner banner--warn" role="status">
+      <strong>Local mode</strong> — jobs are saved in this browser and synced
+      across tabs only. Add your Supabase keys to <code>.env</code> to enable
+      real-time sync across all users.
+    </div>
+  )
+}

@@ -1,21 +1,23 @@
 import Papa from 'papaparse'
 import { DEFAULT_STATUS } from './status'
 
-// Column-name fragments we use to guess which CSV columns mean what. The UI is
-// intentionally generic (no retrofit-specific fields yet), so we only auto-map
-// the few things the app actually needs: a display title and timeline dates.
-const TITLE_HINTS = [
-  'job', 'name', 'title', 'reference', 'ref', 'address', 'property',
-  'customer', 'client', 'site', 'id',
-]
+// Column-name fragments used to map CSV columns onto the fields the app shows.
+// The property address is the headline for a retrofit job, so it wins the title;
+// the reference, postcode, customer and measure are pulled out for display too.
+const ADDRESS_HINTS = ['property address', 'site address', 'address', 'property', 'site']
+const REF_HINTS = ['job reference', 'jobref', 'reference', 'job number', 'job no', 'ref', 'id']
+const POSTCODE_HINTS = ['postcode', 'post code', 'postal', 'zip']
+const CUSTOMER_HINTS = ['customer', 'client', 'occupant', 'tenant', 'homeowner', 'resident', 'name', 'contact']
+const MEASURE_HINTS = ['measure', 'work type', 'works', 'installation', 'product', 'scope']
 const START_HINTS = ['start', 'install', 'begin', 'scheduled', 'date', 'visit', 'survey']
 const END_HINTS = ['end', 'finish', 'complete', 'completion', 'due', 'target']
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
-function pickColumn(headers, hints) {
+function pickColumn(headers, hints, exclude = []) {
+  const excluded = new Set(exclude)
   for (const hint of hints) {
-    const match = headers.find((h) => norm(h).includes(norm(hint)))
+    const match = headers.find((h) => !excluded.has(h) && norm(h).includes(norm(hint)))
     if (match) return match
   }
   return null
@@ -53,11 +55,16 @@ export function parseDate(value) {
   return null
 }
 
-function buildTitle(row, titleCol) {
-  if (titleCol && row[titleCol]) return String(row[titleCol]).trim()
-  // No obvious title column: join the first couple of non-empty values.
-  const vals = Object.values(row).map((v) => String(v ?? '').trim()).filter(Boolean)
-  return vals.slice(0, 2).join(' · ') || 'Untitled job'
+const cell = (row, col) => (col && row[col] != null ? String(row[col]).trim() : '')
+
+function buildTitle(row, addressCol, refCol) {
+  const address = cell(row, addressCol)
+  if (address) return address
+  const ref = cell(row, refCol)
+  if (ref) return ref
+  // No address or reference: first non-empty value.
+  const first = Object.values(row).map((v) => String(v ?? '').trim()).find(Boolean)
+  return first || 'Untitled job'
 }
 
 // Parse a File (or raw text) into normalised job objects. Returns a Promise.
@@ -70,13 +77,13 @@ export function parseCsv(input, { batchId } = {}) {
       complete: (results) => {
         try {
           const headers = results.meta.fields || []
-          const titleCol = pickColumn(headers, TITLE_HINTS)
-          const startCol = pickColumn(headers, START_HINTS)
-          // Don't let end-date reuse the same column we chose for start.
-          const endCol = pickColumn(
-            headers.filter((h) => h !== startCol),
-            END_HINTS,
-          )
+          const addressCol = pickColumn(headers, ADDRESS_HINTS)
+          const refCol = pickColumn(headers, REF_HINTS, [addressCol])
+          const postcodeCol = pickColumn(headers, POSTCODE_HINTS, [addressCol, refCol])
+          const measureCol = pickColumn(headers, MEASURE_HINTS, [addressCol, refCol, postcodeCol])
+          const customerCol = pickColumn(headers, CUSTOMER_HINTS, [addressCol, refCol, postcodeCol, measureCol])
+          const startCol = pickColumn(headers, START_HINTS, [refCol, postcodeCol])
+          const endCol = pickColumn(headers, END_HINTS, [startCol, refCol, postcodeCol])
 
           const jobs = results.data
             .filter((row) => Object.values(row).some((v) => String(v ?? '').trim() !== ''))
@@ -84,7 +91,11 @@ export function parseCsv(input, { batchId } = {}) {
               const start = startCol ? parseDate(row[startCol]) : null
               const end = endCol ? parseDate(row[endCol]) : null
               return {
-                title: buildTitle(row, titleCol),
+                title: buildTitle(row, addressCol, refCol),
+                reference: cell(row, refCol),
+                postcode: cell(row, postcodeCol).toUpperCase(),
+                customer: cell(row, customerCol),
+                measure: cell(row, measureCol),
                 status: DEFAULT_STATUS,
                 start_date: start,
                 end_date: end || start,
@@ -93,7 +104,11 @@ export function parseCsv(input, { batchId } = {}) {
               }
             })
 
-          resolve({ jobs, headers, mapping: { titleCol, startCol, endCol } })
+          resolve({
+            jobs,
+            headers,
+            mapping: { addressCol, refCol, postcodeCol, customerCol, measureCol, startCol, endCol },
+          })
         } catch (err) {
           reject(err)
         }
@@ -101,10 +116,6 @@ export function parseCsv(input, { batchId } = {}) {
       error: (err) => reject(err),
     }
 
-    if (typeof input === 'string') {
-      Papa.parse(input, config)
-    } else {
-      Papa.parse(input, config)
-    }
+    Papa.parse(input, config)
   })
 }

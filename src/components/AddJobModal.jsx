@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { STATUSES, DEFAULT_STATUS } from '../lib/status'
 
-// Modal form for creating a single job by hand (no CSV). Captures the fields the
-// team cares about today — name, address, postcode, status and timeline dates —
-// and stores address/postcode alongside any other details on the job record.
+// Modal form for creating a single job by hand. The property address is the
+// job's identity (its headline everywhere in the app), so it leads the form.
 export default function AddJobModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
-    title: '',
     address: '',
     postcode: '',
+    reference: '',
+    customer: '',
+    measure: '',
     status: DEFAULT_STATUS,
     start_date: '',
     end_date: '',
@@ -25,13 +26,23 @@ export default function AddJobModal({ onClose, onCreate }) {
 
   async function submit(e) {
     e.preventDefault()
-    const title = form.title.trim() || form.address.trim() || 'Untitled job'
+    const address = form.address.trim()
+    const reference = form.reference.trim()
+    const title = address || reference || 'Untitled job'
     setSaving(true)
     const data = {}
-    if (form.address.trim()) data.Address = form.address.trim()
-    if (form.postcode.trim()) data.Postcode = form.postcode.trim().toUpperCase()
+    if (reference) data.Reference = reference
+    if (address) data.Address = address
+    const postcode = form.postcode.trim().toUpperCase()
+    if (postcode) data.Postcode = postcode
+    if (form.customer.trim()) data.Customer = form.customer.trim()
+    if (form.measure.trim()) data.Measure = form.measure.trim()
     await onCreate({
       title,
+      reference,
+      postcode,
+      customer: form.customer.trim(),
+      measure: form.measure.trim(),
       status: form.status,
       start_date: form.start_date || null,
       end_date: form.end_date || form.start_date || null,
@@ -45,41 +56,56 @@ export default function AddJobModal({ onClose, onCreate }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add job">
         <header className="modal__header">
-          <h2>Add job</h2>
-          <button className="drawer__close" onClick={onClose} aria-label="Close">×</button>
+          <div>
+            <p className="eyebrow">New job</p>
+            <h2 className="modal__title">Add a property</h2>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
         </header>
         <form onSubmit={submit} className="modal__form">
-          <label className="field">
-            <span>Job name / reference</span>
-            <input type="text" value={form.title} onChange={set('title')} placeholder="e.g. RF-1009 or customer name" autoFocus />
-          </label>
-          <label className="field">
-            <span>Address</span>
-            <input type="text" value={form.address} onChange={set('address')} placeholder="Street, town" />
+          <label className="field field--full">
+            <span>Property address</span>
+            <input type="text" value={form.address} onChange={set('address')} placeholder="e.g. 27 Larch Close, Preston" autoFocus />
           </label>
           <div className="modal__row">
             <label className="field">
               <span>Postcode</span>
-              <input type="text" value={form.postcode} onChange={set('postcode')} placeholder="PR1 2AB" />
+              <input type="text" className="mono" value={form.postcode} onChange={set('postcode')} placeholder="PR2 8HJ" />
             </label>
             <label className="field">
-              <span>Status</span>
+              <span>Reference</span>
+              <input type="text" className="mono" value={form.reference} onChange={set('reference')} placeholder="RF-3001" />
+            </label>
+          </div>
+          <div className="modal__row">
+            <label className="field">
+              <span>Customer</span>
+              <input type="text" value={form.customer} onChange={set('customer')} placeholder="Optional" />
+            </label>
+            <label className="field">
+              <span>Measure</span>
+              <input type="text" value={form.measure} onChange={set('measure')} placeholder="e.g. Cavity Wall Insulation" />
+            </label>
+          </div>
+          <div className="modal__row">
+            <label className="field">
+              <span>Stage</span>
               <select value={form.status} onChange={set('status')}>
                 {STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>{s.value}</option>
                 ))}
               </select>
             </label>
-          </div>
-          <div className="modal__row">
-            <label className="field">
-              <span>Start date</span>
-              <input type="date" value={form.start_date} onChange={set('start_date')} />
-            </label>
-            <label className="field">
-              <span>End date</span>
-              <input type="date" value={form.end_date} onChange={set('end_date')} />
-            </label>
+            <div className="modal__row modal__row--tight">
+              <label className="field">
+                <span>Start</span>
+                <input type="date" value={form.start_date} onChange={set('start_date')} />
+              </label>
+              <label className="field">
+                <span>End</span>
+                <input type="date" value={form.end_date} onChange={set('end_date')} />
+              </label>
+            </div>
           </div>
           <div className="modal__actions">
             <button type="button" className="btn" onClick={onClose}>Cancel</button>

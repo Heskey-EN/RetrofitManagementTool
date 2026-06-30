@@ -1,61 +1,51 @@
 import StatusSelect from './StatusSelect'
 import { statusColor } from '../lib/status'
+import { jobReference, jobPostcode, jobCustomer, jobMeasure, formatDateShort } from '../lib/display'
 
-function formatDate(iso) {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-// One card per job. Shows the detected title, a couple of preview fields, and
-// an inline status control. Clicking the card opens the full detail drawer.
+// One card per job. The property address is the headline; the reference,
+// postcode and dates are set in mono to read as precise, measured data.
 export default function JobCard({ job, onStatusChange, onOpen }) {
-  const start = formatDate(job.start_date)
-  const end = job.end_date && job.end_date !== job.start_date ? formatDate(job.end_date) : null
-
-  // Show up to three extra fields from the raw CSV row as a quick preview.
-  const preview = Object.entries(job.data || {})
-    .filter(([, v]) => String(v ?? '').trim() !== '')
-    .slice(0, 3)
+  const reference = jobReference(job)
+  const postcode = jobPostcode(job)
+  const customer = jobCustomer(job)
+  const measure = jobMeasure(job)
+  const start = formatDateShort(job.start_date)
+  const end = job.end_date && job.end_date !== job.start_date ? formatDateShort(job.end_date) : null
 
   return (
     <article
-      className="job-card"
+      className="card"
       style={{ '--status-color': statusColor(job.status) }}
       onClick={() => onOpen(job)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onOpen(job)
-      }}
+      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(job) }}
     >
-      <div className="job-card__bar" aria-hidden />
-      <div className="job-card__body">
-        <h3 className="job-card__title">{job.title}</h3>
-        {(start || end) && (
-          <div className="job-card__dates">
-            {start && <span>{start}</span>}
-            {end && <span className="job-card__date-sep">→ {end}</span>}
-          </div>
-        )}
-        {preview.length > 0 && (
-          <dl className="job-card__preview">
-            {preview.map(([k, v]) => (
-              <div key={k} className="job-card__field">
-                <dt>{k}</dt>
-                <dd>{String(v)}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </div>
-      <div className="job-card__actions">
-        <StatusSelect
-          value={job.status}
-          size="sm"
-          onChange={(value) => onStatusChange(job.id, { status: value })}
-        />
+      <span className="card__rail" aria-hidden />
+      <div className="card__body">
+        <div className="card__eyebrow">
+          {reference && <span className="card__ref mono">{reference}</span>}
+          {measure && <span className="card__measure">{measure}</span>}
+        </div>
+        <h3 className="card__title">{job.title}</h3>
+        <div className="card__meta">
+          {postcode && <span className="mono card__postcode">{postcode}</span>}
+          {customer && <span className="card__customer">{customer}</span>}
+        </div>
+        <div className="card__foot">
+          <span className="card__dates mono">
+            {start ? (
+              <>{start}{end && <span className="card__dates-sep"> → {end}</span>}</>
+            ) : (
+              <span className="card__nodate">No dates</span>
+            )}
+          </span>
+          <StatusSelect
+            value={job.status}
+            size="sm"
+            onChange={(value) => onStatusChange(job.id, { status: value })}
+          />
+        </div>
       </div>
     </article>
   )

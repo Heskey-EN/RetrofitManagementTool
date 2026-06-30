@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useJobs } from './hooks/useJobs'
 import { storeMode } from './lib/jobsStore'
-import { STATUSES } from './lib/status'
-import ConnectionBanner from './components/ConnectionBanner'
+import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/display'
+import BrandMark from './components/BrandMark'
+import Pipeline from './components/Pipeline'
 import CsvUpload from './components/CsvUpload'
 import JobList from './components/JobList'
 import CalendarTimeline from './components/CalendarTimeline'
@@ -12,90 +13,143 @@ import AddJobModal from './components/AddJobModal'
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
   const [view, setView] = useState('list')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState(null)
   const [activeJob, setActiveJob] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [toast, setToast] = useState(null)
 
-  // Keep the open drawer in sync with realtime updates to the underlying job.
+  const pushToast = useCallback((t) => {
+    setToast(t)
+    window.clearTimeout(pushToast._t)
+    pushToast._t = window.setTimeout(() => setToast(null), 4500)
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return jobs.filter((job) => {
+      if (statusFilter && job.status !== statusFilter) return false
+      if (!q) return true
+      const haystack = [
+        job.title, jobReference(job), jobPostcode(job), jobCustomer(job), jobMeasure(job),
+        ...Object.values(job.data || {}),
+      ].join(' ').toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [jobs, query, statusFilter])
+
   const drawerJob = useMemo(
     () => (activeJob ? jobs.find((j) => j.id === activeJob.id) || activeJob : null),
     [activeJob, jobs],
   )
 
-  const counts = useMemo(() => {
-    const map = Object.fromEntries(STATUSES.map((s) => [s.value, 0]))
-    for (const job of jobs) if (map[job.status] != null) map[job.status] += 1
-    return map
-  }, [jobs])
-
   async function handleClear() {
-    if (window.confirm('Remove all jobs? This affects everyone connected.')) {
+    if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
       await clearAll()
       setActiveJob(null)
+      setStatusFilter(null)
     }
   }
 
+  const showEmptyHero = !loading && jobs.length === 0
+
   return (
     <div className="app">
-      <header className="app__header">
-        <div className="app__brand">
-          <h1>Retrofit Job Management</h1>
-          <span className={`app__mode app__mode--${storeMode}`}>
-            {storeMode === 'supabase' ? '● Live sync' : '● Local mode'}
+      <header className="topbar">
+        <div className="topbar__brand">
+          <span className="topbar__mark"><BrandMark size={30} /></span>
+          <span className="topbar__name">
+            Eco Futures
+            <span className="topbar__sub">Retrofit Operations</span>
           </span>
         </div>
-        <div className="app__stats">
-          {STATUSES.map((s) => (
-            <span key={s.value} className="stat" style={{ '--status-color': s.color }}>
-              <span className="stat__dot" />
-              {counts[s.value]} {s.value}
-            </span>
-          ))}
+        <div className="topbar__actions">
+          <span className={`mode-chip mode-chip--${storeMode}`} title={storeMode === 'supabase' ? 'Live multi-user sync' : 'Stored locally in this browser'}>
+            <span className="mode-chip__dot" />
+            {storeMode === 'supabase' ? 'Live sync' : 'Local'}
+          </span>
+          <CsvUpload variant="compact" onJobs={addJobs} onToast={pushToast} />
+          <button className="btn btn--primary" onClick={() => setAddOpen(true)}>
+            <span aria-hidden>＋</span> Add job
+          </button>
         </div>
       </header>
 
-      <ConnectionBanner />
-      {error && <div className="banner banner--error" role="alert">Error: {error}</div>}
+      {error && <div className="alert" role="alert">Something went wrong: {error}</div>}
 
-      <main className="app__main">
-        <CsvUpload onJobs={addJobs} />
+      <main className="shell">
+        {jobs.length > 0 && (
+          <Pipeline jobs={jobs} activeStatus={statusFilter} onSelect={setStatusFilter} />
+        )}
 
-        <div className="toolbar">
-          <div className="tabs" role="tablist">
-            <button
-              role="tab"
-              aria-selected={view === 'list'}
-              className={`tab${view === 'list' ? ' tab--active' : ''}`}
-              onClick={() => setView('list')}
-            >
-              List
-            </button>
-            <button
-              role="tab"
-              aria-selected={view === 'calendar'}
-              className={`tab${view === 'calendar' ? ' tab--active' : ''}`}
-              onClick={() => setView('calendar')}
-            >
-              Calendar
-            </button>
-          </div>
-          <div className="toolbar__right">
-            <button className="btn btn--primary" onClick={() => setAddOpen(true)}>
-              + Add job
-            </button>
-            {jobs.length > 0 && (
-              <button className="btn btn--ghost" onClick={handleClear}>
-                Clear all
-              </button>
-            )}
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="empty"><p>Loading jobs…</p></div>
-        ) : view === 'list' ? (
-          <JobList jobs={jobs} onStatusChange={updateJob} onOpen={setActiveJob} />
+        {showEmptyHero ? (
+          <section className="empty-hero">
+            <div className="empty-hero__inner">
+              <p className="eyebrow">Get started</p>
+              <h1 className="empty-hero__title">Start tracking retrofit jobs</h1>
+              <p className="empty-hero__lead">
+                Add a property by hand, or import a CSV to load a whole batch. Each job moves
+                through booking, assessment, coordination, compiling documents and submission —
+                with its own document folders along the way.
+              </p>
+              <div className="empty-hero__actions">
+                <button className="btn btn--primary btn--lg" onClick={() => setAddOpen(true)}>
+                  ＋ Add a property
+                </button>
+                <CsvUpload variant="dropzone" onJobs={addJobs} onToast={pushToast} />
+              </div>
+            </div>
+          </section>
         ) : (
-          <CalendarTimeline jobs={jobs} onOpen={setActiveJob} />
+          <section className="board">
+            <div className="board__toolbar">
+              <div className="segmented" role="tablist" aria-label="View">
+                <button
+                  role="tab" aria-selected={view === 'list'}
+                  className={`segmented__btn${view === 'list' ? ' is-active' : ''}`}
+                  onClick={() => setView('list')}
+                >Jobs</button>
+                <button
+                  role="tab" aria-selected={view === 'calendar'}
+                  className={`segmented__btn${view === 'calendar' ? ' is-active' : ''}`}
+                  onClick={() => setView('calendar')}
+                >Calendar</button>
+              </div>
+
+              <div className="board__right">
+                {view === 'list' && (
+                  <div className="search">
+                    <span className="search__icon" aria-hidden>⌕</span>
+                    <input
+                      type="search"
+                      placeholder="Search address, postcode, reference…"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                  </div>
+                )}
+                <span className="board__count">
+                  {filtered.length}<span className="board__count-of"> / {jobs.length}</span>
+                </span>
+                <button className="btn btn--ghost btn--sm" onClick={handleClear}>Clear all</button>
+              </div>
+            </div>
+
+            {statusFilter && (
+              <div className="filter-note">
+                Showing <strong>{statusFilter}</strong>
+                <button className="filter-note__clear" onClick={() => setStatusFilter(null)}>clear</button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="placeholder">Loading jobs…</div>
+            ) : view === 'list' ? (
+              <JobList jobs={filtered} onStatusChange={updateJob} onOpen={setActiveJob} />
+            ) : (
+              <CalendarTimeline jobs={filtered} onOpen={setActiveJob} />
+            )}
+          </section>
         )}
       </main>
 
@@ -109,6 +163,10 @@ export default function App() {
             if (created && created[0]) setActiveJob(created[0])
           }}
         />
+      )}
+
+      {toast && (
+        <div className={`toast toast--${toast.type}`} role="status">{toast.text}</div>
       )}
     </div>
   )

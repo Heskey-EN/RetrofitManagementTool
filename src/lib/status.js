@@ -1,14 +1,17 @@
-// Generic job statuses for the MVP. These are deliberately not
-// retrofit-specific — Phase 2 can replace them with measure/compliance states.
+// The retrofit project workflow. Every job moves through these stages in order;
+// each stage also doubles as a document folder (see documentsStore).
 export const STATUSES = [
-  { value: 'Not Started', color: '#6b7280' },
-  { value: 'Scheduled', color: '#2563eb' },
-  { value: 'In Progress', color: '#d97706' },
-  { value: 'On Hold', color: '#dc2626' },
-  { value: 'Complete', color: '#16a34a' },
+  { value: 'Booking', color: '#2563eb' },
+  { value: 'Assessment', color: '#7c3aed' },
+  { value: 'Coordination', color: '#d97706' },
+  { value: 'Compiling documents', color: '#0891b2' },
+  { value: 'Submitted', color: '#16a34a' },
 ]
 
 export const STATUS_VALUES = STATUSES.map((s) => s.value)
+
+// First stage is the default for new jobs (manual add and CSV import).
+export const DEFAULT_STATUS = STATUSES[0].value
 
 export function statusColor(value) {
   const found = STATUSES.find((s) => s.value === value)

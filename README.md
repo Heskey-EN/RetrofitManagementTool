@@ -1,32 +1,45 @@
 # Retrofit Job Management Tool
 
-A real-time job management system for **Eco Futures**. Upload a CSV of jobs, see
-them as cards in a list, view their timelines on a calendar, and update status
-live across 40–50 concurrent users.
-
-This is the **Phase 1 MVP**: deliberately generic (no retrofit-specific fields
-or branding yet). It reads whatever columns your CSV contains.
+A job management system for **Eco Futures**. Add jobs by hand or upload a CSV,
+see them as cards in a list, view their timelines on a calendar, track each job
+through the retrofit workflow, and attach documents — all stored locally in the
+browser with no backend required.
 
 ## What it does
 
-- **CSV upload** — drag-and-drop or browse; parsed in the browser with Papa Parse.
-- **Job list** — one card per row, searchable and filterable by status.
+- **Add jobs** — a manual form (name, address, postcode, status, dates) or a CSV
+  upload (drag-and-drop, parsed in-browser with Papa Parse).
+- **Job list** — one card per job, searchable and filterable by status.
 - **Calendar timeline** — a lightweight Gantt-style view of dated jobs.
-- **Real-time sync** — status and date changes propagate live to every user.
-- **Status tracking** — Not Started · Scheduled · In Progress · On Hold · Complete.
+- **Retrofit workflow statuses** — Booking · Assessment · Coordination ·
+  Compiling documents · Submitted.
+- **Documents per job** — upload files (PDFs etc.) and attach links. Each
+  document is filed into a folder per status, with a **Master** folder that shows
+  everything for the job.
+- **Local-first storage** — jobs and documents (including uploaded files) live in
+  the browser via **IndexedDB**, synced across tabs on the same machine. No
+  accounts, no server, no monthly cost.
 
-## Quick start (local)
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. With no Supabase keys set, the app runs in **local
-mode**: jobs are stored in your browser and synced across tabs on this machine.
-Drag in `sample-data/jobs-sample.csv` to try it.
+Open http://localhost:5173. Click **+ Add job** to create one by hand, or drag in
+`sample-data/jobs-sample.csv`. Everything persists locally between sessions.
 
-## Enabling real-time multi-user sync (Supabase)
+## Storage & the backend layer
+
+Data lives in IndexedDB on each user's machine, so there's currently **no live
+sync between different people**. The backend is deliberately pluggable
+([`src/lib/jobsStore.js`](src/lib/jobsStore.js)): swapping the local
+implementation for a hosted one (Firebase, PocketBase, or Supabase) adds
+real-time multi-user sync without touching the UI. The Supabase path below is
+kept wired for whenever that's wanted.
+
+## Optional: real-time multi-user sync (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
 2. In the dashboard go to **SQL Editor → New query**, paste the contents of
@@ -43,6 +56,10 @@ Drag in `sample-data/jobs-sample.csv` to try it.
 
 5. Restart `npm run dev`. The header badge switches from **Local mode** to
    **Live sync**. Open two browsers / machines and watch updates propagate.
+
+   Note: this syncs **jobs**. Uploaded documents currently stay in local
+   IndexedDB; moving file storage to a hosted bucket (e.g. Supabase Storage) is a
+   follow-up.
 
 ## Deploying to Vercel
 
@@ -70,24 +87,32 @@ UK-style `DD/MM/YYYY` dates are understood, along with ISO and common formats.
 ```
 src/
   lib/
-    supabaseClient.js   Supabase client (or null in local mode)
-    jobsStore.js        Backend abstraction: Supabase or local fallback + realtime
+    idb.js              IndexedDB wrapper (jobs + documents stores)
+    jobsStore.js        Pluggable backend: local (IndexedDB) or Supabase
+    documentsStore.js   Per-job files + links, filed into status folders
     csv.js              Papa Parse wrapper + column/date detection
-    status.js           Status values and colours
-  hooks/useJobs.js      Loads, subscribes, and mutates jobs
-  components/           Upload, list, cards, timeline, detail drawer
+    status.js           Retrofit workflow statuses and colours
+    supabaseClient.js   Supabase client (only used if env vars are set)
+  hooks/
+    useJobs.js          Loads, subscribes, and mutates jobs
+    useDocuments.js     Loads and mutates one job's documents
+  components/           Upload, add-job modal, list, cards, timeline,
+                        detail drawer, documents panel
   App.jsx               Layout, tabs, stats
-supabase/schema.sql     Run this in your Supabase project
+supabase/schema.sql     Optional: run in a Supabase project for multi-user sync
 sample-data/            Example CSV
 ```
 
-## Roadmap (Phase 2)
+## Roadmap (next)
 
+- **Multi-user sync** — connect a hosted backend (Firebase / PocketBase /
+  Supabase) so 40–50 users share data live, plus hosted file storage.
 - Retrofit-specific fields: measures, install dates, compliance details.
-- Supabase Auth with per-user / per-organisation row-level security.
+- Auth with per-user / per-organisation access.
 - Branding and refined UI.
 
-## Tech & budget
+## Tech
 
-- Frontend: Vite + React on Vercel (~£20/mo).
-- Backend: Supabase realtime Postgres (~£80–150/mo at 40–50 users).
+- Vite + React, deployable to Vercel (~£20/mo). Currently no backend cost —
+  storage is local (IndexedDB). A hosted backend would be added when live
+  multi-user sync is needed.

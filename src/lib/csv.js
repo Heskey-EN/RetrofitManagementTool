@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import { DEFAULT_STATUS } from './status'
 
 // Column-name fragments we use to guess which CSV columns mean what. The UI is
 // intentionally generic (no retrofit-specific fields yet), so we only auto-map
@@ -84,7 +85,7 @@ export function parseCsv(input, { batchId } = {}) {
               const end = endCol ? parseDate(row[endCol]) : null
               return {
                 title: buildTitle(row, titleCol),
-                status: 'Not Started',
+                status: DEFAULT_STATUS,
                 start_date: start,
                 end_date: end || start,
                 data: row,

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import StatusSelect from './StatusSelect'
+import DocumentsPanel from './DocumentsPanel'
 
 // Slide-in panel showing every field from the original CSV row, plus editable
 // status and timeline dates. Closes on Escape or backdrop click.
@@ -46,6 +47,11 @@ export default function JobDetailDrawer({ job, onClose, onUpdate }) {
               onChange={(e) => onUpdate(job.id, { end_date: e.target.value || null })}
             />
           </div>
+        </div>
+
+        <div className="drawer__section">
+          <label className="drawer__field-label">Documents</label>
+          <DocumentsPanel jobId={job.id} jobStatus={job.status} />
         </div>
 
         <div className="drawer__section">

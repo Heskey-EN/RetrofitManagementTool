@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { idbGetAll, idbGet, idbPut, idbBulkPut, idbClear } from './idb'
 
 // A small uniform interface over two interchangeable backends:
 //   - "supabase": a shared Postgres table with real-time Postgres changes,
@@ -76,57 +77,48 @@ function createSupabaseStore() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Local backend (localStorage + BroadcastChannel)                           */
+/*  Local backend (IndexedDB + BroadcastChannel)                              */
 /* -------------------------------------------------------------------------- */
-
-const LS_KEY = 'rmt:jobs'
 
 function createLocalStore() {
   const channel =
     typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('rmt:jobs') : null
-
-  const read = () => {
-    try {
-      return JSON.parse(localStorage.getItem(LS_KEY) || '[]')
-    } catch {
-      return []
-    }
-  }
-  const write = (rows) => localStorage.setItem(LS_KEY, JSON.stringify(rows))
   const announce = (payload) => channel?.postMessage(payload)
 
   return {
     mode: 'local',
 
     async fetchAll() {
-      return read()
+      const rows = await idbGetAll('jobs')
+      return rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')))
     },
 
     async insertMany(jobs) {
       const now = new Date().toISOString()
-      const rows = jobs.map((j) => ({
+      const rows = jobs.map((j, i) => ({
         ...j,
         id: j.id || uuid(),
-        created_at: now,
+        // Stagger timestamps so import order is preserved when sorting.
+        created_at: new Date(Date.now() + i).toISOString(),
         updated_at: now,
       }))
-      write([...read(), ...rows])
+      await idbBulkPut('jobs', rows)
       announce({ eventType: 'INSERT', new: rows })
       return rows
     },
 
     async updateJob(id, patch) {
-      const rows = read()
-      const idx = rows.findIndex((r) => r.id === id)
-      if (idx === -1) return null
-      rows[idx] = { ...rows[idx], ...patch, updated_at: new Date().toISOString() }
-      write(rows)
-      announce({ eventType: 'UPDATE', new: rows[idx] })
-      return rows[idx]
+      const existing = await idbGet('jobs', id)
+      if (!existing) return null
+      const updated = { ...existing, ...patch, updated_at: new Date().toISOString() }
+      await idbPut('jobs', updated)
+      announce({ eventType: 'UPDATE', new: updated })
+      return updated
     },
 
     async clearAll() {
-      write([])
+      await idbClear('jobs')
+      await idbClear('documents')
       announce({ eventType: 'DELETE', new: null })
     },
 
@@ -134,15 +126,7 @@ function createLocalStore() {
       if (!channel) return () => {}
       const handler = (e) => onChange(e.data)
       channel.addEventListener('message', handler)
-      // Also pick up changes from other tabs via the storage event.
-      const storageHandler = (e) => {
-        if (e.key === LS_KEY) onChange({ eventType: 'SYNC', new: null })
-      }
-      window.addEventListener('storage', storageHandler)
-      return () => {
-        channel.removeEventListener('message', handler)
-        window.removeEventListener('storage', storageHandler)
-      }
+      return () => channel.removeEventListener('message', handler)
     },
   }
 }

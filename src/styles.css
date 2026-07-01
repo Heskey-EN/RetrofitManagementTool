@@ -361,6 +361,37 @@ button { font-family: inherit; }
 .docs__note-text.is-done { text-decoration: line-through; color: var(--muted); }
 .docs__kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
 
+/* ---------- Projects view ---------- */
+.projects__lead { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.projects__list { display: flex; flex-direction: column; gap: 10px; }
+.project { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); box-shadow: var(--sh-1); overflow: hidden; }
+.project--multi { border-color: color-mix(in srgb, var(--brand) 28%, var(--line)); }
+.project__head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: transparent; border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.project__head:hover { background: var(--sunken); }
+.project__chevron { color: var(--faint); font-family: var(--font-display); font-size: 18px; line-height: 1; transition: transform 0.15s; flex-shrink: 0; }
+.project__chevron.is-open { transform: rotate(90deg); }
+.project__title { display: flex; align-items: baseline; gap: 10px; flex: 1; min-width: 0; }
+.project__road { font-family: var(--font-display); font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project__pc { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.project__meta { display: flex; align-items: baseline; gap: 5px; color: var(--muted); font-size: 12.5px; flex-shrink: 0; }
+.project__count { font-size: 15px; font-weight: 600; color: var(--ink); }
+.project__stages { display: flex; gap: 10px; flex-shrink: 0; }
+.project__stage { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.project__stage-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-color); }
+.project__jobs { list-style: none; margin: 0; padding: 0; }
+.project__job { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+.project__job:hover { background: var(--sunken); }
+.project__job-rail { width: 3px; height: 22px; border-radius: var(--pill); background: var(--status-color); flex-shrink: 0; }
+.project__job-addr { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project__job-ref { font-size: 11.5px; color: var(--brand-ink); flex-shrink: 0; }
+.project__job-pc { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.project__job-stage { font-size: 12px; color: var(--muted); flex-shrink: 0; min-width: 96px; text-align: right; }
+
+@media (max-width: 720px) {
+  .project__stages { display: none; }
+  .project__job-stage { min-width: 0; }
+}
+
 /* ---------- Full-screen job view ---------- */
 .jobview { position: fixed; inset: 0; background: var(--canvas); z-index: 70; overflow-y: auto; animation: jobviewIn 0.2s ease; }
 @keyframes jobviewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

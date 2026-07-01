@@ -6,6 +6,7 @@ import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/displa
 import Pipeline from './components/Pipeline'
 import CsvUpload from './components/CsvUpload'
 import JobList from './components/JobList'
+import ProjectsView from './components/ProjectsView'
 import CalendarTimeline from './components/CalendarTimeline'
 import JobView from './components/JobView'
 import AddJobModal from './components/AddJobModal'
@@ -117,6 +118,11 @@ export default function App() {
                   onClick={() => setView('list')}
                 >Jobs</button>
                 <button
+                  role="tab" aria-selected={view === 'projects'}
+                  className={`segmented__btn${view === 'projects' ? ' is-active' : ''}`}
+                  onClick={() => setView('projects')}
+                >Projects</button>
+                <button
                   role="tab" aria-selected={view === 'calendar'}
                   className={`segmented__btn${view === 'calendar' ? ' is-active' : ''}`}
                   onClick={() => setView('calendar')}
@@ -124,7 +130,7 @@ export default function App() {
               </div>
 
               <div className="board__right">
-                {view === 'list' && (
+                {view !== 'calendar' && (
                   <div className="search">
                     <span className="search__icon" aria-hidden>⌕</span>
                     <input
@@ -153,6 +159,8 @@ export default function App() {
               <div className="placeholder">Loading jobs…</div>
             ) : view === 'list' ? (
               <JobList jobs={filtered} onStatusChange={requestStatusChange} onOpen={setActiveJob} />
+            ) : view === 'projects' ? (
+              <ProjectsView jobs={filtered} onOpen={setActiveJob} />
             ) : (
               <CalendarTimeline jobs={filtered} onOpen={setActiveJob} />
             )}

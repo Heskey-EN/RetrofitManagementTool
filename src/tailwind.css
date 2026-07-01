@@ -1,0 +1,14 @@
+/* Tailwind CSS v4 + daisyUI 5 entry.
+   Imported before styles.css in main.jsx so the app's existing custom design
+   system (styles.css, unlayered) keeps cascade priority over Tailwind's
+   @layer-based preflight/utilities.
+
+   daisyUI is prefixed "dsy-" because this app already defines its own .btn,
+   .card, .modal, .drawer, .alert classes — the prefix keeps daisyUI's
+   components (dsy-btn, dsy-card, …) from colliding with them. Tailwind
+   utilities stay unprefixed. */
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+  prefix: "dsy-";
+}

@@ -42,6 +42,32 @@ export const documentsStore = {
     return doc
   },
 
+  // A note is an item too, filed into a stage folder. `done` lets a note that
+  // records a missing component be ticked off once it's been supplied.
+  async addNote(jobId, { text, folder }) {
+    const doc = {
+      id: uuid(),
+      job_id: jobId,
+      kind: 'note',
+      text,
+      done: false,
+      folder,
+      created_at: new Date().toISOString(),
+    }
+    await idbPut('documents', doc)
+    announce(jobId)
+    return doc
+  },
+
+  async setDone(id, done) {
+    const doc = await idbGet('documents', id)
+    if (!doc) return null
+    const updated = { ...doc, done }
+    await idbPut('documents', updated)
+    announce(doc.job_id)
+    return updated
+  },
+
   async addFile(jobId, file, folder) {
     const doc = {
       id: uuid(),

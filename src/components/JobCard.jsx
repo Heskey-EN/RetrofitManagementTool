@@ -1,6 +1,6 @@
 import StatusSelect from './StatusSelect'
 import { statusColor } from '../lib/status'
-import { jobReference, jobPostcode, jobCustomer, jobMeasure, formatDateShort } from '../lib/display'
+import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure, formatDateShort } from '../lib/display'
 
 // One card per job. The property address is the headline; the reference,
 // postcode and dates are set in mono to read as precise, measured data.
@@ -27,7 +27,7 @@ export default function JobCard({ job, onStatusChange, onOpen }) {
           {reference && <span className="card__ref mono">{reference}</span>}
           {measure && <span className="card__measure">{measure}</span>}
         </div>
-        <h3 className="card__title">{job.title}</h3>
+        <h3 className="card__title">{jobAddress(job)}</h3>
         <div className="card__meta">
           {postcode && <span className="mono card__postcode">{postcode}</span>}
           {customer && <span className="card__customer">{customer}</span>}

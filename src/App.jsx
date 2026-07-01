@@ -2,7 +2,6 @@ import { useMemo, useState, useCallback } from 'react'
 import { useJobs } from './hooks/useJobs'
 import { storeMode } from './lib/jobsStore'
 import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/display'
-import BrandMark from './components/BrandMark'
 import Pipeline from './components/Pipeline'
 import CsvUpload from './components/CsvUpload'
 import JobList from './components/JobList'
@@ -56,13 +55,6 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="topbar__brand">
-          <span className="topbar__mark"><BrandMark size={30} /></span>
-          <span className="topbar__name">
-            Eco Futures
-            <span className="topbar__sub">Retrofit Operations</span>
-          </span>
-        </div>
         <div className="topbar__actions">
           <span className={`mode-chip mode-chip--${storeMode}`} title={storeMode === 'supabase' ? 'Live multi-user sync' : 'Stored locally in this browser'}>
             <span className="mode-chip__dot" />

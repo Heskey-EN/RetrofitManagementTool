@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import StatusSelect from './StatusSelect'
 import DocumentsPanel from './DocumentsPanel'
-import { jobReference, jobPostcode, jobCustomer, jobMeasure } from '../lib/display'
+import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure } from '../lib/display'
 
 // Slide-in panel for a single property: stage, timeline dates, key details,
 // documents (by folder), and every original field. Closes on Escape / backdrop.
@@ -32,7 +32,7 @@ export default function JobDetailDrawer({ job, onClose, onUpdate }) {
         <header className="drawer__header">
           <div className="drawer__heading">
             {reference && <p className="eyebrow mono">{reference}</p>}
-            <h2 className="drawer__title">{job.title}</h2>
+            <h2 className="drawer__title">{jobAddress(job)}</h2>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
         </header>
@@ -67,7 +67,7 @@ export default function JobDetailDrawer({ job, onClose, onUpdate }) {
         </section>
 
         <section className="drawer__section">
-          <h3 className="drawer__legend">Documents</h3>
+          <h3 className="drawer__legend">Documents &amp; notes</h3>
           <DocumentsPanel jobId={job.id} jobStatus={job.status} />
         </section>
 

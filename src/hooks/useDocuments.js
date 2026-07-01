@@ -38,6 +38,22 @@ export function useDocuments(jobId) {
     [jobId, refetch],
   )
 
+  const addNote = useCallback(
+    async (note) => {
+      await documentsStore.addNote(jobId, note)
+      refetch()
+    },
+    [jobId, refetch],
+  )
+
+  const setDone = useCallback(
+    async (id, done) => {
+      await documentsStore.setDone(id, done)
+      refetch()
+    },
+    [refetch],
+  )
+
   const move = useCallback(
     async (id, folder) => {
       await documentsStore.move(id, folder)
@@ -54,5 +70,5 @@ export function useDocuments(jobId) {
     [jobId, refetch],
   )
 
-  return { docs, loading, addFile, addLink, move, remove }
+  return { docs, loading, addFile, addLink, addNote, setDone, move, remove }
 }

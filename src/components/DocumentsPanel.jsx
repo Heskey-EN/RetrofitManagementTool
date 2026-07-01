@@ -12,14 +12,17 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-// Documents area for a single job: a Master folder (all documents) plus one
-// folder per workflow status. Upload files or attach links into any folder.
+// Documents & notes for a single job. A Master folder (all items) plus one
+// folder per workflow stage. Into any folder you can upload files, attach links,
+// or add notes — a note with an unticked box is an outstanding / missing item.
 export default function DocumentsPanel({ jobId, jobStatus }) {
-  const { docs, addFile, addLink, move, remove } = useDocuments(jobId)
+  const { docs, addFile, addLink, addNote, setDone, move, remove } = useDocuments(jobId)
   const [folder, setFolder] = useState(MASTER)
   const [linkOpen, setLinkOpen] = useState(false)
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [noteText, setNoteText] = useState('')
   const fileRef = useRef(null)
 
   const counts = useMemo(() => {
@@ -29,8 +32,8 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
     return map
   }, [docs])
 
-  // Where new uploads/links are filed: the selected folder, or the job's
-  // current status when viewing the Master (all) folder.
+  // New items are filed into the selected folder, or the job's current stage
+  // when viewing the Master (all) folder.
   const targetFolder = folder === MASTER ? jobStatus : folder
   const visible = folder === MASTER ? docs : docs.filter((d) => d.folder === folder)
 
@@ -49,6 +52,15 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
     setLinkName('')
     setLinkUrl('')
     setLinkOpen(false)
+  }
+
+  async function onAddNote(e) {
+    e.preventDefault()
+    const text = noteText.trim()
+    if (!text) return
+    await addNote({ text, folder: targetFolder })
+    setNoteText('')
+    setNoteOpen(false)
   }
 
   function openFile(doc) {
@@ -86,58 +98,64 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
           onChange={onPickFile}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,application/pdf"
         />
-        <button className="btn btn--sm" onClick={() => fileRef.current?.click()}>
-          ⬆ Upload file
-        </button>
-        <button className="btn btn--sm" onClick={() => setLinkOpen((v) => !v)}>
-          🔗 Add link
-        </button>
-        <span className="docs__target">
-          filing into <strong>{targetFolder}</strong>
-        </span>
+        <button className="btn btn--sm" onClick={() => fileRef.current?.click()}>⬆ Upload file</button>
+        <button className="btn btn--sm" onClick={() => { setLinkOpen((v) => !v); setNoteOpen(false) }}>🔗 Add link</button>
+        <button className="btn btn--sm" onClick={() => { setNoteOpen((v) => !v); setLinkOpen(false) }}>✎ Add note</button>
+        <span className="docs__target">into <strong>{targetFolder}</strong></span>
       </div>
 
       {linkOpen && (
         <form className="docs__link-form" onSubmit={onAddLink}>
-          <input
-            type="text"
-            placeholder="Label (optional)"
-            value={linkName}
-            onChange={(e) => setLinkName(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="https://…"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            autoFocus
-          />
+          <input type="text" placeholder="Label (optional)" value={linkName} onChange={(e) => setLinkName(e.target.value)} />
+          <input type="text" placeholder="https://…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} autoFocus />
           <button className="btn btn--sm btn--primary" type="submit">Add</button>
         </form>
       )}
 
+      {noteOpen && (
+        <form className="docs__note-form" onSubmit={onAddNote}>
+          <textarea
+            placeholder="e.g. Missing EPC certificate — chase customer"
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            rows={2}
+            autoFocus
+          />
+          <button className="btn btn--sm btn--primary" type="submit">Add note</button>
+        </form>
+      )}
+
       {visible.length === 0 ? (
-        <p className="docs__empty muted">
-          {folder === MASTER ? 'No documents yet.' : `Nothing in ${folder} yet.`}
+        <p className="docs__empty">
+          {folder === MASTER ? 'Nothing added yet.' : `Nothing in ${folder} yet.`}
         </p>
       ) : (
         <ul className="docs__list">
           {visible.map((doc) => (
-            <li key={doc.id} className="docs__item">
-              <span className="docs__icon" aria-hidden>{doc.kind === 'link' ? '🔗' : '📄'}</span>
+            <li key={doc.id} className={`docs__item${doc.kind === 'note' ? ' docs__item--note' : ''}`}>
+              {doc.kind === 'note' ? (
+                <input
+                  type="checkbox"
+                  className="docs__check"
+                  checked={!!doc.done}
+                  onChange={(e) => setDone(doc.id, e.target.checked)}
+                  title={doc.done ? 'Mark outstanding' : 'Mark done'}
+                />
+              ) : (
+                <span className="docs__icon" aria-hidden>{doc.kind === 'link' ? '🔗' : '📄'}</span>
+              )}
+
               <div className="docs__meta">
-                {doc.kind === 'link' ? (
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="docs__name">
-                    {doc.name}
-                  </a>
+                {doc.kind === 'note' ? (
+                  <span className={`docs__note-text${doc.done ? ' is-done' : ''}`}>{doc.text}</span>
+                ) : doc.kind === 'link' ? (
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="docs__name">{doc.name}</a>
                 ) : (
-                  <button className="docs__name docs__name--btn" onClick={() => openFile(doc)}>
-                    {doc.name}
-                  </button>
+                  <button className="docs__name docs__name--btn" onClick={() => openFile(doc)}>{doc.name}</button>
                 )}
                 <span className="docs__sub">
-                  {doc.kind === 'file' && doc.size != null && `${formatSize(doc.size)} · `}
-                  {/* In Master view, show which folder each doc lives in. */}
+                  {doc.kind === 'note' && <span className="docs__kind">note</span>}
+                  {doc.kind === 'file' && doc.size != null && <span>{formatSize(doc.size)}</span>}
                   {folder === MASTER && (
                     <select
                       className="docs__folder-pick"
@@ -145,9 +163,7 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
                       onChange={(e) => move(doc.id, e.target.value)}
                       title="Move to folder"
                     >
-                      {STATUS_VALUES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
+                      {STATUS_VALUES.map((s) => (<option key={s} value={s}>{s}</option>))}
                     </select>
                   )}
                 </span>

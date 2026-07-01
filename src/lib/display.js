@@ -9,6 +9,14 @@ function field(job, key, ...dataKeys) {
   return ''
 }
 
+// The property address is the headline everywhere. Read it straight from the
+// data so jobs imported before addresses were the title still display correctly.
+export function jobAddress(job) {
+  const a = job?.data?.['Property Address'] || job?.data?.Address || job?.address
+  if (a && String(a).trim()) return String(a).trim()
+  return job?.title || 'Untitled job'
+}
+
 export const jobReference = (job) => field(job, 'reference', 'Reference', 'Job Reference', 'Ref')
 export const jobPostcode = (job) => field(job, 'postcode', 'Postcode', 'Post Code')
 export const jobCustomer = (job) => field(job, 'customer', 'Customer', 'Client')

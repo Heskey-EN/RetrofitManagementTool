@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { statusColor } from '../lib/status'
-import { jobReference } from '../lib/display'
+import { jobAddress, jobReference } from '../lib/display'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DAY_WIDTH = 36
@@ -94,10 +94,11 @@ export default function CalendarTimeline({ jobs, onOpen }) {
               const offset = daysBetween(model.min, start)
               const span = Math.max(1, daysBetween(start, end || start) + 1)
               const ref = jobReference(job)
+              const address = jobAddress(job)
               return (
                 <div key={job.id} className="timeline__row">
                   <div className="timeline__label-col">
-                    <span className="timeline__label-title" title={job.title}>{job.title}</span>
+                    <span className="timeline__label-title" title={address}>{address}</span>
                     {ref && <span className="timeline__label-ref mono">{ref}</span>}
                   </div>
                   <div className="timeline__track" style={{ width: trackWidth }}>
@@ -106,9 +107,9 @@ export default function CalendarTimeline({ jobs, onOpen }) {
                       className="timeline__bar"
                       style={{ left: offset * DAY_WIDTH, width: span * DAY_WIDTH - 5, background: statusColor(job.status) }}
                       onClick={() => onOpen(job)}
-                      title={`${job.title} — ${job.status}`}
+                      title={`${address} — ${job.status}`}
                     >
-                      <span className="timeline__bar-label">{job.title}</span>
+                      <span className="timeline__bar-label">{address}</span>
                     </button>
                   </div>
                 </div>

@@ -126,7 +126,7 @@ button { font-family: inherit; }
 .topbar__mark { color: var(--brand); display: inline-flex; }
 .topbar__name { font-family: var(--font-display); font-weight: 600; font-size: 16px; line-height: 1.05; display: flex; flex-direction: column; }
 .topbar__sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 400; margin-top: 3px; }
-.topbar__actions { display: flex; align-items: center; gap: 10px; }
+.topbar__actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .mode-chip {
   display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500;
   padding: 5px 11px; border-radius: var(--pill); border: 1px solid var(--line); color: var(--muted); background: var(--surface);
@@ -349,6 +349,14 @@ button { font-family: inherit; }
 .docs__folder-pick { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 6px; font-size: 11px; padding: 1px 4px; font-family: var(--font); }
 .docs__remove { border: 0; background: none; color: var(--faint); font-size: 19px; line-height: 1; cursor: pointer; flex-shrink: 0; }
 .docs__remove:hover { color: var(--danger); }
+.docs__note-form { display: flex; gap: 6px; margin-bottom: 10px; align-items: flex-start; }
+.docs__note-form textarea { flex: 1; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); padding: 8px 10px; border-radius: var(--r1); font-size: 13px; font-family: var(--font); resize: vertical; min-height: 42px; }
+.docs__note-form textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+.docs__item--note { align-items: flex-start; }
+.docs__check { margin-top: 2px; width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
+.docs__note-text { font-size: 13.5px; color: var(--ink); white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+.docs__note-text.is-done { text-decoration: line-through; color: var(--muted); }
+.docs__kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
 
 /* ---------- Toast ---------- */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); color: #fff; padding: 11px 18px; border-radius: var(--pill); box-shadow: var(--sh-3); font-size: 13.5px; z-index: 80; max-width: 90vw; animation: toastIn 0.2s ease; }

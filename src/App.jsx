@@ -119,6 +119,17 @@ export default function App() {
 
   const clearSelection = useCallback(() => { setSelected(new Set()); setAnchorId(null) }, [])
 
+  // Select (or clear) every job in a project at once.
+  const toggleGroup = useCallback((ids) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      const allSelected = ids.length > 0 && ids.every((id) => next.has(id))
+      if (allSelected) ids.forEach((id) => next.delete(id))
+      else ids.forEach((id) => next.add(id))
+      return next
+    })
+  }, [])
+
   const allVisibleSelected = filtered.length > 0 && filtered.every((j) => selected.has(j.id))
   const toggleSelectAll = () => {
     setSelected((prev) => {
@@ -304,7 +315,13 @@ export default function App() {
                 onClearSelection={clearSelection}
               />
             ) : view === 'projects' ? (
-              <ProjectsView jobs={filtered} onOpen={setActiveJob} />
+              <ProjectsView
+                jobs={filtered}
+                onOpen={setActiveJob}
+                selectedIds={selected}
+                onToggleSelect={toggleSelect}
+                onToggleGroup={toggleGroup}
+              />
             ) : (
               <CalendarTimeline jobs={filtered} onOpen={setActiveJob} />
             )}
@@ -345,7 +362,7 @@ export default function App() {
         />
       )}
 
-      {view === 'list' && selected.size > 0 && (
+      {(view === 'list' || view === 'projects') && selected.size > 0 && (
         <BulkActionsBar
           count={selected.size}
           onSetStatus={bulkSetStatus}

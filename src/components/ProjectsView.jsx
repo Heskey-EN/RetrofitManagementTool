@@ -5,10 +5,12 @@ import { jobAddress, jobReference, jobPostcode } from '../lib/display'
 
 // Jobs grouped into projects by road + postcode. Multi-property projects are
 // expanded by default so schemes are immediately visible; single properties
-// collapse to keep the list scannable.
-export default function ProjectsView({ jobs, onOpen }) {
+// collapse to keep the list scannable. A header checkbox selects the whole
+// project; row checkboxes select individual properties — both feed the bulk bar.
+export default function ProjectsView({ jobs, onOpen, selectedIds, onToggleSelect, onToggleGroup }) {
   const projects = useMemo(() => groupProjects(jobs), [jobs])
   const [overrides, setOverrides] = useState({})
+  const selectable = Boolean(onToggleSelect && onToggleGroup)
 
   if (!jobs.length) {
     return <div className="placeholder"><p>No jobs to group yet.</p></div>
@@ -16,9 +18,10 @@ export default function ProjectsView({ jobs, onOpen }) {
 
   const multi = projects.filter((p) => p.jobs.length > 1).length
   const toggle = (key) => setOverrides((o) => ({ ...o, [key]: !(o[key] ?? false) }))
+  const isSel = (id) => Boolean(selectedIds && selectedIds.has(id))
 
   return (
-    <div className="projects">
+    <div className={`projects${selectable && selectedIds.size > 0 ? ' projects--selecting' : ''}`}>
       <p className="projects__lead">
         {projects.length} project{projects.length === 1 ? '' : 's'} · {multi} with multiple properties.
         Grouped by road and postcode.
@@ -27,9 +30,33 @@ export default function ProjectsView({ jobs, onOpen }) {
         {projects.map((p) => {
           const many = p.jobs.length > 1
           const open = overrides[p.key] ?? many
+          const ids = p.jobs.map((j) => j.id)
+          const allSel = selectable && ids.every((id) => isSel(id))
+          const someSel = selectable && ids.some((id) => isSel(id))
           return (
-            <div className={`project${many ? ' project--multi' : ''}`} key={p.key}>
-              <button className="project__head" onClick={() => toggle(p.key)} aria-expanded={open}>
+            <div className={`project${many ? ' project--multi' : ''}${someSel ? ' is-selected' : ''}`} key={p.key}>
+              <div
+                className="project__head"
+                onClick={() => toggle(p.key)}
+                role="button"
+                aria-expanded={open}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && toggle(p.key)}
+              >
+                {selectable && (
+                  <label
+                    className="project__check"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleGroup(ids) }}
+                    title="Select whole project"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allSel}
+                      readOnly
+                      ref={(el) => { if (el) el.indeterminate = someSel && !allSel }}
+                    />
+                  </label>
+                )}
                 <span className={`project__chevron${open ? ' is-open' : ''}`} aria-hidden>›</span>
                 <span className="project__title">
                   <span className="project__road">{p.road}</span>
@@ -46,7 +73,7 @@ export default function ProjectsView({ jobs, onOpen }) {
                     </span>
                   ))}
                 </span>
-              </button>
+              </div>
 
               {open && (
                 <ul className="project__jobs">
@@ -55,13 +82,21 @@ export default function ProjectsView({ jobs, onOpen }) {
                     return (
                       <li
                         key={job.id}
-                        className="project__job"
+                        className={`project__job${isSel(job.id) ? ' is-selected' : ''}`}
                         style={{ '--status-color': statusColor(job.status) }}
                         onClick={() => onOpen(job)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => e.key === 'Enter' && onOpen(job)}
                       >
+                        {selectable && (
+                          <label
+                            className="project__job-check"
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleSelect(job.id) }}
+                          >
+                            <input type="checkbox" checked={isSel(job.id)} readOnly aria-label={`Select ${jobAddress(job)}`} />
+                          </label>
+                        )}
                         <span className="project__job-rail" />
                         <span className="project__job-addr">{jobAddress(job)}</span>
                         {ref && <span className="project__job-ref mono">{ref}</span>}

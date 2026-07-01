@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import Login from './Login'
+import AddUserModal from './AddUserModal'
 import '../styles-admin.css'
 
 const ROLES = ['admin', 'member', 'viewer']
@@ -21,6 +22,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [error, setError] = useState(null)
+  const [addOpen, setAddOpen] = useState(false)
 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true)
@@ -91,6 +93,7 @@ export default function AdminPage() {
           <h1 className="admin__title">Users &amp; access</h1>
         </div>
         <div className="admin__top-actions">
+          <button className="btn btn--primary" onClick={() => setAddOpen(true)}>＋ Add user</button>
           <a className="btn" href="#/app">Open the app</a>
           <button className="btn" onClick={auth.signOut}>Sign out ({auth.user.email})</button>
         </div>
@@ -161,9 +164,12 @@ export default function AdminPage() {
       </div>
 
       <p className="admin__hint">
-        New team members sign up from the login screen and start as <strong>pending</strong>.
-        Set them to <strong>active</strong> to grant access, and choose their role.
+        Use <strong>Add user</strong> to create an account directly, or let people sign up
+        from the login screen (they start as <strong>pending</strong>) and set them to
+        <strong> active</strong> here.
       </p>
+
+      {addOpen && <AddUserModal onClose={() => setAddOpen(false)} onCreated={loadUsers} />}
     </div>
   )
 }

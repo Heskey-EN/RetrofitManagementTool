@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import Landing from './components/Landing'
 import AdminPage from './components/AdminPage'
+import AuthGate from './components/AuthGate'
 import './tailwind.css'
 import './styles.css'
 
@@ -22,7 +23,7 @@ function Root() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   if (route === 'admin') return <AdminPage />
-  if (route === 'app') return <App />
+  if (route === 'app') return <AuthGate><App /></AuthGate>
   return <Landing onEnter={() => { window.location.hash = '#/app' }} />
 }
 

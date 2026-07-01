@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useJobs } from './hooks/useJobs'
+import { useAuth } from './hooks/useAuth'
 import { storeMode } from './lib/jobsStore'
 import { statusIndex, statusLabel } from './lib/status'
 import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/display'
@@ -16,6 +17,7 @@ import TemplatesPage from './components/TemplatesPage'
 
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
+  const { isAdmin } = useAuth()
   const [view, setView] = useState('list')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState(null)
@@ -188,6 +190,7 @@ export default function App() {
             <span className="mode-chip__dot" />
             {storeMode === 'supabase' ? 'Live sync' : 'Local'}
           </span>
+          {isAdmin && <a className="btn btn--ghost" href="#/admin">Admin panel</a>}
           <button className="btn" onClick={() => setTemplatesOpen(true)}>Templates</button>
           <CsvUpload variant="compact" onJobs={addJobs} onToast={pushToast} />
           <button className="btn btn--primary" onClick={() => setAddOpen(true)}>

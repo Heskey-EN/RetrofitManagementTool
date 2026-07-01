@@ -4,7 +4,7 @@ import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure, formatD
 
 // One card per job. The property address is the headline; the reference,
 // postcode and dates are set in mono to read as precise, measured data.
-export default function JobCard({ job, onStatusChange, onOpen }) {
+export default function JobCard({ job, onStatusChange, onOpen, selected, onToggleSelect }) {
   const reference = jobReference(job)
   const postcode = jobPostcode(job)
   const customer = jobCustomer(job)
@@ -14,13 +14,23 @@ export default function JobCard({ job, onStatusChange, onOpen }) {
 
   return (
     <article
-      className="card"
+      className={`card${selected ? ' is-selected' : ''}`}
       style={{ '--status-color': statusColor(job.status) }}
       onClick={() => onOpen(job)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(job) }}
     >
+      {onToggleSelect && (
+        <label className="card__check" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onToggleSelect(job.id)}
+            aria-label={`Select ${jobAddress(job)}`}
+          />
+        </label>
+      )}
       <span className="card__rail" aria-hidden />
       <div className="card__body">
         <div className="card__eyebrow">

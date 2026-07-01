@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useJobs } from './hooks/useJobs'
 import { storeMode } from './lib/jobsStore'
 import { statusIndex, statusLabel } from './lib/status'
@@ -11,6 +11,7 @@ import CalendarTimeline from './components/CalendarTimeline'
 import JobView from './components/JobView'
 import AddJobModal from './components/AddJobModal'
 import StageMoveDialog from './components/StageMoveDialog'
+import BulkActionsBar from './components/BulkActionsBar'
 
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
@@ -22,6 +23,7 @@ export default function App() {
   const [stageMove, setStageMove] = useState(null)
   const [scope, setScope] = useState('active')
   const [selectedTags, setSelectedTags] = useState([])
+  const [selected, setSelected] = useState(() => new Set())
   const [toast, setToast] = useState(null)
 
   const pushToast = useCallback((t) => {
@@ -77,6 +79,56 @@ export default function App() {
     setActiveJob(null)
     pushToast({ type: 'success', text: job.archived ? 'Job restored to active.' : 'Job archived.' })
   }, [updateJob, pushToast])
+
+  // ---- Multi-select (Jobs list) ----
+  const toggleSelect = useCallback((id) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => setSelected(new Set()), [])
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((j) => selected.has(j.id))
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (filtered.every((j) => next.has(j.id))) filtered.forEach((j) => next.delete(j.id))
+      else filtered.forEach((j) => next.add(j.id))
+      return next
+    })
+  }
+
+  const bulkSetStatus = useCallback((status) => {
+    const n = selected.size
+    for (const id of selected) updateJob(id, { status })
+    pushToast({ type: 'success', text: `Moved ${n} job${n === 1 ? '' : 's'} to ${statusLabel(status)}.` })
+  }, [selected, updateJob, pushToast])
+
+  const bulkAddTag = useCallback((tag) => {
+    const t = tag.trim()
+    if (!t) return
+    const n = selected.size
+    for (const id of selected) {
+      const job = jobs.find((j) => j.id === id)
+      if (!job) continue
+      const tags = job.tags || []
+      if (!tags.some((x) => x.toLowerCase() === t.toLowerCase())) updateJob(id, { tags: [...tags, t] })
+    }
+    pushToast({ type: 'success', text: `Tagged ${n} job${n === 1 ? '' : 's'} “${t}”.` })
+  }, [selected, jobs, updateJob, pushToast])
+
+  const bulkArchive = useCallback(() => {
+    const n = selected.size
+    for (const id of selected) updateJob(id, { archived: true })
+    setSelected(new Set())
+    pushToast({ type: 'success', text: `Archived ${n} job${n === 1 ? '' : 's'}.` })
+  }, [selected, updateJob, pushToast])
+
+  // Selection only applies to the Jobs list; drop it when the view or scope changes.
+  useEffect(() => { setSelected(new Set()) }, [view, scope])
 
   async function handleClear() {
     if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
@@ -151,6 +203,12 @@ export default function App() {
               </div>
 
               <div className="board__right">
+                {view === 'list' && filtered.length > 0 && (
+                  <label className="selectall" title="Select all shown">
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} />
+                    All
+                  </label>
+                )}
                 {view !== 'calendar' && (
                   <div className="search">
                     <span className="search__icon" aria-hidden>⌕</span>
@@ -206,7 +264,13 @@ export default function App() {
             {loading ? (
               <div className="placeholder">Loading jobs…</div>
             ) : view === 'list' ? (
-              <JobList jobs={filtered} onStatusChange={requestStatusChange} onOpen={setActiveJob} />
+              <JobList
+                jobs={filtered}
+                onStatusChange={requestStatusChange}
+                onOpen={setActiveJob}
+                selectedIds={selected}
+                onToggleSelect={toggleSelect}
+              />
             ) : view === 'projects' ? (
               <ProjectsView jobs={filtered} onOpen={setActiveJob} />
             ) : (
@@ -245,6 +309,16 @@ export default function App() {
             updateJob(stageMove.job.id, { status: stageMove.toStatus })
             setStageMove(null)
           }}
+        />
+      )}
+
+      {view === 'list' && selected.size > 0 && (
+        <BulkActionsBar
+          count={selected.size}
+          onSetStatus={bulkSetStatus}
+          onAddTag={bulkAddTag}
+          onArchive={bulkArchive}
+          onClear={clearSelection}
         />
       )}
 

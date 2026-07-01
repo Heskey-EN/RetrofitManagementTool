@@ -12,6 +12,7 @@ import JobView from './components/JobView'
 import AddJobModal from './components/AddJobModal'
 import StageMoveDialog from './components/StageMoveDialog'
 import BulkActionsBar from './components/BulkActionsBar'
+import TemplatesPage from './components/TemplatesPage'
 
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
@@ -24,6 +25,8 @@ export default function App() {
   const [scope, setScope] = useState('active')
   const [selectedTags, setSelectedTags] = useState([])
   const [selected, setSelected] = useState(() => new Set())
+  const [anchorId, setAnchorId] = useState(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
   const pushToast = useCallback((t) => {
@@ -87,9 +90,34 @@ export default function App() {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+    setAnchorId(id)
   }, [])
 
-  const clearSelection = useCallback(() => setSelected(new Set()), [])
+  // Shift-click: select every job between the anchor and this one, in view order.
+  const selectRange = useCallback((id) => {
+    setSelected((prev) => {
+      const ids = filtered.map((j) => j.id)
+      const anchor = anchorId ?? id
+      const i1 = ids.indexOf(anchor)
+      const i2 = ids.indexOf(id)
+      const next = new Set(prev)
+      if (i1 === -1 || i2 === -1) { next.add(id); return next }
+      const [lo, hi] = i1 < i2 ? [i1, i2] : [i2, i1]
+      for (let k = lo; k <= hi; k++) next.add(ids[k])
+      return next
+    })
+    if (anchorId == null) setAnchorId(id)
+  }, [filtered, anchorId])
+
+  // Drag-box: replace (or, with a modifier, add to) the selection.
+  const applyMarquee = useCallback((ids, additive) => {
+    setSelected((prev) => {
+      if (additive) { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next }
+      return new Set(ids)
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => { setSelected(new Set()); setAnchorId(null) }, [])
 
   const allVisibleSelected = filtered.length > 0 && filtered.every((j) => selected.has(j.id))
   const toggleSelectAll = () => {
@@ -128,7 +156,7 @@ export default function App() {
   }, [selected, updateJob, pushToast])
 
   // Selection only applies to the Jobs list; drop it when the view or scope changes.
-  useEffect(() => { setSelected(new Set()) }, [view, scope])
+  useEffect(() => { setSelected(new Set()); setAnchorId(null) }, [view, scope])
 
   async function handleClear() {
     if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
@@ -149,6 +177,7 @@ export default function App() {
             <span className="mode-chip__dot" />
             {storeMode === 'supabase' ? 'Live sync' : 'Local'}
           </span>
+          <button className="btn" onClick={() => setTemplatesOpen(true)}>Templates</button>
           <CsvUpload variant="compact" onJobs={addJobs} onToast={pushToast} />
           <button className="btn btn--primary" onClick={() => setAddOpen(true)}>
             <span aria-hidden>＋</span> Add job
@@ -270,6 +299,9 @@ export default function App() {
                 onOpen={setActiveJob}
                 selectedIds={selected}
                 onToggleSelect={toggleSelect}
+                onSelectRange={selectRange}
+                onApplyMarquee={applyMarquee}
+                onClearSelection={clearSelection}
               />
             ) : view === 'projects' ? (
               <ProjectsView jobs={filtered} onOpen={setActiveJob} />
@@ -287,6 +319,7 @@ export default function App() {
           onUpdate={updateJob}
           onStatusChange={requestStatusChange}
           onArchive={archiveJob}
+          onManageTemplates={() => setTemplatesOpen(true)}
         />
       )}
 
@@ -321,6 +354,8 @@ export default function App() {
           onClear={clearSelection}
         />
       )}
+
+      {templatesOpen && <TemplatesPage onClose={() => setTemplatesOpen(false)} />}
 
       {toast && (
         <div className={`toast toast--${toast.type}`} role="status">{toast.text}</div>

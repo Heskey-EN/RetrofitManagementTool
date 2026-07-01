@@ -4,7 +4,7 @@ import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure, formatD
 
 // One card per job. The property address is the headline; the reference,
 // postcode and dates are set in mono to read as precise, measured data.
-export default function JobCard({ job, onStatusChange, onOpen, selected, onToggleSelect }) {
+export default function JobCard({ job, onStatusChange, onOpen, selected, onToggleSelect, onSelectRange }) {
   const reference = jobReference(job)
   const postcode = jobPostcode(job)
   const customer = jobCustomer(job)
@@ -16,19 +16,27 @@ export default function JobCard({ job, onStatusChange, onOpen, selected, onToggl
     <article
       className={`card${selected ? ' is-selected' : ''}`}
       style={{ '--status-color': statusColor(job.status) }}
-      onClick={() => onOpen(job)}
+      data-job-id={job.id}
+      onClick={(e) => {
+        if (e.shiftKey && onSelectRange) { onSelectRange(job.id); return }
+        if ((e.metaKey || e.ctrlKey) && onToggleSelect) { onToggleSelect(job.id); return }
+        onOpen(job)
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(job) }}
     >
       {onToggleSelect && (
-        <label className="card__check" onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
-            checked={!!selected}
-            onChange={() => onToggleSelect(job.id)}
-            aria-label={`Select ${jobAddress(job)}`}
-          />
+        <label
+          className="card__check"
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            if (e.shiftKey && onSelectRange) onSelectRange(job.id)
+            else onToggleSelect(job.id)
+          }}
+        >
+          <input type="checkbox" checked={!!selected} readOnly tabIndex={-1} aria-label={`Select ${jobAddress(job)}`} />
         </label>
       )}
       <span className="card__rail" aria-hidden />

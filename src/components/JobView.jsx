@@ -2,12 +2,13 @@ import { useEffect } from 'react'
 import StatusSelect from './StatusSelect'
 import DocumentsPanel from './DocumentsPanel'
 import CostingPanel from './CostingPanel'
+import GeneratePanel from './GeneratePanel'
 import TagInput from './TagInput'
 import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure } from '../lib/display'
 
 // Full-screen view for a single property: identity + stage + schedule at the
 // top, then two boxes side by side — Notes and Files — each organised by stage.
-export default function JobView({ job, onClose, onUpdate, onStatusChange, onArchive }) {
+export default function JobView({ job, onClose, onUpdate, onStatusChange, onArchive, onManageTemplates }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -96,6 +97,12 @@ export default function JobView({ job, onClose, onUpdate, onStatusChange, onArch
           <h2 className="jobview__box-title">Costing</h2>
           <p className="jobview__box-hint">Coordination / Design — list each item and its cost, then enter the projected revenue to see the profit.</p>
           <CostingPanel costing={job.costing} onSave={(costing) => onUpdate(job.id, { costing })} />
+        </section>
+
+        <section className="jobview__box jobview__box--wide">
+          <h2 className="jobview__box-title">Generate documents</h2>
+          <p className="jobview__box-hint">Fill a template from this job’s data and its uploaded PDFs. The finished document is saved into Files.</p>
+          <GeneratePanel job={job} onManageTemplates={onManageTemplates} />
         </section>
 
         {extraFields.length > 0 && (

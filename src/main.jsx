@@ -2,18 +2,28 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import Landing from './components/Landing'
+import AdminPage from './components/AdminPage'
 import './tailwind.css'
 import './styles.css'
 
-// Tiny hash router: '#/app' shows the tool, anything else shows the landing page.
+// Tiny hash router: '#/admin' is the admin console, '#/app' the tool, anything
+// else the landing page.
+function routeFor(hash) {
+  if (hash.startsWith('#/admin')) return 'admin'
+  if (hash.startsWith('#/app')) return 'app'
+  return 'landing'
+}
+
 function Root() {
-  const [route, setRoute] = React.useState(() => (window.location.hash.startsWith('#/app') ? 'app' : 'landing'))
+  const [route, setRoute] = React.useState(() => routeFor(window.location.hash))
   React.useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.startsWith('#/app') ? 'app' : 'landing')
+    const onHash = () => setRoute(routeFor(window.location.hash))
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
-  return route === 'app' ? <App /> : <Landing onEnter={() => { window.location.hash = '#/app' }} />
+  if (route === 'admin') return <AdminPage />
+  if (route === 'app') return <App />
+  return <Landing onEnter={() => { window.location.hash = '#/app' }} />
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

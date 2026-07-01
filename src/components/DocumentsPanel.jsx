@@ -12,30 +12,32 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-// Documents & notes for a single job. A Master folder (all items) plus one
-// folder per workflow stage. Into any folder you can upload files, attach links,
-// or add notes — a note with an unticked box is an outstanding / missing item.
-export default function DocumentsPanel({ jobId, jobStatus }) {
+// One panel handles both the Files box (mode="files": uploads + links) and the
+// Notes box (mode="notes"). Both organise items into a Master folder plus one
+// folder per workflow stage. A note carries a tick-box so an outstanding /
+// missing component can be marked resolved.
+export default function DocumentsPanel({ jobId, jobStatus, mode = 'files' }) {
   const { docs, addFile, addLink, addNote, setDone, move, remove } = useDocuments(jobId)
   const [folder, setFolder] = useState(MASTER)
   const [linkOpen, setLinkOpen] = useState(false)
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
-  const [noteOpen, setNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const fileRef = useRef(null)
 
-  const counts = useMemo(() => {
-    const map = { [MASTER]: docs.length }
-    for (const s of STATUS_VALUES) map[s] = 0
-    for (const d of docs) if (map[d.folder] != null) map[d.folder] += 1
-    return map
-  }, [docs])
+  const isNotes = mode === 'notes'
+  const kinds = isNotes ? ['note'] : ['file', 'link']
+  const items = useMemo(() => docs.filter((d) => kinds.includes(d.kind)), [docs, isNotes])
 
-  // New items are filed into the selected folder, or the job's current stage
-  // when viewing the Master (all) folder.
+  const counts = useMemo(() => {
+    const map = { [MASTER]: items.length }
+    for (const s of STATUS_VALUES) map[s] = 0
+    for (const d of items) if (map[d.folder] != null) map[d.folder] += 1
+    return map
+  }, [items])
+
   const targetFolder = folder === MASTER ? jobStatus : folder
-  const visible = folder === MASTER ? docs : docs.filter((d) => d.folder === folder)
+  const visible = folder === MASTER ? items : items.filter((d) => d.folder === folder)
 
   async function onPickFile(e) {
     const files = Array.from(e.target.files || [])
@@ -60,7 +62,6 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
     if (!text) return
     await addNote({ text, folder: targetFolder })
     setNoteText('')
-    setNoteOpen(false)
   }
 
   function openFile(doc) {
@@ -83,51 +84,52 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
             onClick={() => setFolder(f)}
           >
             {f !== MASTER && <span className="docs__folder-dot" />}
-            {f === MASTER ? 'Master (all)' : f}
+            {f === MASTER ? 'All' : f}
             <span className="docs__folder-count">{counts[f] ?? 0}</span>
           </button>
         ))}
       </div>
 
-      <div className="docs__add">
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          hidden
-          onChange={onPickFile}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,application/pdf"
-        />
-        <button className="btn btn--sm" onClick={() => fileRef.current?.click()}>⬆ Upload file</button>
-        <button className="btn btn--sm" onClick={() => { setLinkOpen((v) => !v); setNoteOpen(false) }}>🔗 Add link</button>
-        <button className="btn btn--sm" onClick={() => { setNoteOpen((v) => !v); setLinkOpen(false) }}>✎ Add note</button>
-        <span className="docs__target">into <strong>{targetFolder}</strong></span>
-      </div>
-
-      {linkOpen && (
-        <form className="docs__link-form" onSubmit={onAddLink}>
-          <input type="text" placeholder="Label (optional)" value={linkName} onChange={(e) => setLinkName(e.target.value)} />
-          <input type="text" placeholder="https://…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} autoFocus />
-          <button className="btn btn--sm btn--primary" type="submit">Add</button>
-        </form>
-      )}
-
-      {noteOpen && (
+      {isNotes ? (
         <form className="docs__note-form" onSubmit={onAddNote}>
           <textarea
-            placeholder="e.g. Missing EPC certificate — chase customer"
+            placeholder="Add a note for this stage — e.g. Missing EPC certificate, chase customer"
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             rows={2}
-            autoFocus
           />
-          <button className="btn btn--sm btn--primary" type="submit">Add note</button>
+          <button className="btn btn--sm btn--primary" type="submit" disabled={!noteText.trim()}>Add</button>
         </form>
+      ) : (
+        <>
+          <div className="docs__add">
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              hidden
+              onChange={onPickFile}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,application/pdf"
+            />
+            <button className="btn btn--sm" onClick={() => fileRef.current?.click()}>⬆ Upload file</button>
+            <button className="btn btn--sm" onClick={() => setLinkOpen((v) => !v)}>🔗 Add link</button>
+            <span className="docs__target">into <strong>{targetFolder}</strong></span>
+          </div>
+          {linkOpen && (
+            <form className="docs__link-form" onSubmit={onAddLink}>
+              <input type="text" placeholder="Label (optional)" value={linkName} onChange={(e) => setLinkName(e.target.value)} />
+              <input type="text" placeholder="https://…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} autoFocus />
+              <button className="btn btn--sm btn--primary" type="submit">Add</button>
+            </form>
+          )}
+        </>
       )}
 
       {visible.length === 0 ? (
         <p className="docs__empty">
-          {folder === MASTER ? 'Nothing added yet.' : `Nothing in ${folder} yet.`}
+          {folder === MASTER
+            ? isNotes ? 'No notes yet.' : 'No files yet.'
+            : `Nothing in ${folder} yet.`}
         </p>
       ) : (
         <ul className="docs__list">
@@ -154,7 +156,6 @@ export default function DocumentsPanel({ jobId, jobStatus }) {
                   <button className="docs__name docs__name--btn" onClick={() => openFile(doc)}>{doc.name}</button>
                 )}
                 <span className="docs__sub">
-                  {doc.kind === 'note' && <span className="docs__kind">note</span>}
                   {doc.kind === 'file' && doc.size != null && <span>{formatSize(doc.size)}</span>}
                   {folder === MASTER && (
                     <select

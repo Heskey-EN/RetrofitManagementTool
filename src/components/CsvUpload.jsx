@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
-import { parseCsv } from '../lib/csv'
+import { parseFile } from '../lib/csv'
 
-// CSV importer. Renders either as a compact toolbar button or a large
-// drag-and-drop dropzone (the empty state), sharing one parse/import path.
+const ACCEPT = '.csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel'
+
+// Spreadsheet importer (CSV + Excel). Renders either as a compact toolbar button
+// or a large drag-and-drop dropzone (the empty state), sharing one parse path.
 export default function CsvUpload({ onJobs, onToast, variant = 'compact' }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
@@ -10,14 +12,14 @@ export default function CsvUpload({ onJobs, onToast, variant = 'compact' }) {
 
   async function handleFile(file) {
     if (!file) return
-    if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') {
-      onToast?.({ type: 'error', text: 'Please choose a .csv file.' })
+    if (!/\.(csv|xlsx|xls|xlsm)$/i.test(file.name)) {
+      onToast?.({ type: 'error', text: 'Please choose a CSV or Excel (.xlsx/.xls) file.' })
       return
     }
     setBusy(true)
     try {
       const batchId = `${file.name}-${Date.now()}`
-      const { jobs, mapping } = await parseCsv(file, { batchId })
+      const { jobs, mapping } = await parseFile(file, { batchId })
       if (!jobs.length) {
         onToast?.({ type: 'error', text: 'No rows found in that CSV.' })
         return
@@ -40,7 +42,7 @@ export default function CsvUpload({ onJobs, onToast, variant = 'compact' }) {
     <input
       ref={inputRef}
       type="file"
-      accept=".csv,text/csv"
+      accept={ACCEPT}
       hidden
       onChange={(e) => handleFile(e.target.files?.[0])}
     />
@@ -59,8 +61,8 @@ export default function CsvUpload({ onJobs, onToast, variant = 'compact' }) {
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click() }}
       >
         {input}
-        <div className="dropzone__title">{busy ? 'Importing…' : 'Import a CSV'}</div>
-        <div className="dropzone__hint">Drag a file here or click to browse</div>
+        <div className="dropzone__title">{busy ? 'Importing…' : 'Import a spreadsheet'}</div>
+        <div className="dropzone__hint">CSV or Excel — drag a file here or click to browse</div>
       </div>
     )
   }
@@ -68,7 +70,7 @@ export default function CsvUpload({ onJobs, onToast, variant = 'compact' }) {
   return (
     <button className="btn" onClick={() => inputRef.current?.click()} disabled={busy}>
       {input}
-      <span aria-hidden>⇪</span> {busy ? 'Importing…' : 'Import CSV'}
+      <span aria-hidden>⇪</span> {busy ? 'Importing…' : 'Import'}
     </button>
   )
 }

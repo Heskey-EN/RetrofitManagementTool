@@ -1,13 +1,15 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useJobs } from './hooks/useJobs'
 import { storeMode } from './lib/jobsStore'
+import { statusIndex } from './lib/status'
 import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/display'
 import Pipeline from './components/Pipeline'
 import CsvUpload from './components/CsvUpload'
 import JobList from './components/JobList'
 import CalendarTimeline from './components/CalendarTimeline'
-import JobDetailDrawer from './components/JobDetailDrawer'
+import JobView from './components/JobView'
 import AddJobModal from './components/AddJobModal'
+import StageMoveDialog from './components/StageMoveDialog'
 
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
@@ -16,6 +18,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState(null)
   const [activeJob, setActiveJob] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [stageMove, setStageMove] = useState(null)
   const [toast, setToast] = useState(null)
 
   const pushToast = useCallback((t) => {
@@ -37,10 +40,21 @@ export default function App() {
     })
   }, [jobs, query, statusFilter])
 
-  const drawerJob = useMemo(
+  const openJob = useMemo(
     () => (activeJob ? jobs.find((j) => j.id === activeJob.id) || activeJob : null),
     [activeJob, jobs],
   )
+
+  // Advancing a job to a later stage requires confirming documents are in place.
+  // Moving backward (or to the same stage) applies immediately.
+  const requestStatusChange = useCallback((job, newStatus) => {
+    if (!job || newStatus === job.status) return
+    if (statusIndex(newStatus) > statusIndex(job.status)) {
+      setStageMove({ job, toStatus: newStatus })
+    } else {
+      updateJob(job.id, { status: newStatus })
+    }
+  }, [updateJob])
 
   async function handleClear() {
     if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
@@ -55,6 +69,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
+        <div className="topbar__title">Retrofit Project Management Tool</div>
         <div className="topbar__actions">
           <span className={`mode-chip mode-chip--${storeMode}`} title={storeMode === 'supabase' ? 'Live multi-user sync' : 'Stored locally in this browser'}>
             <span className="mode-chip__dot" />
@@ -80,9 +95,9 @@ export default function App() {
               <p className="eyebrow">Get started</p>
               <h1 className="empty-hero__title">Start tracking retrofit jobs</h1>
               <p className="empty-hero__lead">
-                Add a property by hand, or import a CSV to load a whole batch. Each job moves
-                through booking, assessment, coordination, compiling documents and submission —
-                with its own document folders along the way.
+                Add a property by hand, or import a spreadsheet (CSV or Excel) to load a whole
+                batch. Each job moves through booking, assessment, coordination, compiling
+                documents and submission — with its own notes and files along the way.
               </p>
               <div className="empty-hero__actions">
                 <button className="btn btn--primary btn--lg" onClick={() => setAddOpen(true)}>
@@ -137,7 +152,7 @@ export default function App() {
             {loading ? (
               <div className="placeholder">Loading jobs…</div>
             ) : view === 'list' ? (
-              <JobList jobs={filtered} onStatusChange={updateJob} onOpen={setActiveJob} />
+              <JobList jobs={filtered} onStatusChange={requestStatusChange} onOpen={setActiveJob} />
             ) : (
               <CalendarTimeline jobs={filtered} onOpen={setActiveJob} />
             )}
@@ -145,7 +160,14 @@ export default function App() {
         )}
       </main>
 
-      <JobDetailDrawer job={drawerJob} onClose={() => setActiveJob(null)} onUpdate={updateJob} />
+      {openJob && (
+        <JobView
+          job={openJob}
+          onClose={() => setActiveJob(null)}
+          onUpdate={updateJob}
+          onStatusChange={requestStatusChange}
+        />
+      )}
 
       {addOpen && (
         <AddJobModal
@@ -153,6 +175,18 @@ export default function App() {
           onCreate={async (job) => {
             const created = await addJobs([job])
             if (created && created[0]) setActiveJob(created[0])
+          }}
+        />
+      )}
+
+      {stageMove && (
+        <StageMoveDialog
+          job={stageMove.job}
+          toStatus={stageMove.toStatus}
+          onCancel={() => setStageMove(null)}
+          onConfirm={() => {
+            updateJob(stageMove.job.id, { status: stageMove.toStatus })
+            setStageMove(null)
           }}
         />
       )}

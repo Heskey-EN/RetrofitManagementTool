@@ -43,7 +43,7 @@ export default function JobCard({ job, onStatusChange, onOpen }) {
           <StatusSelect
             value={job.status}
             size="sm"
-            onChange={(value) => onStatusChange(job.id, { status: value })}
+            onChange={(value) => onStatusChange(job, value)}
           />
         </div>
       </div>

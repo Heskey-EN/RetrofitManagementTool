@@ -67,6 +67,24 @@ function buildTitle(row, addressCol, refCol) {
   return first || 'Untitled job'
 }
 
+// Parse any supported spreadsheet/CSV file into normalised jobs. Excel files
+// (.xlsx/.xls) are converted to CSV via SheetJS (loaded on demand), then run
+// through the same column-detection path as CSV, so property addresses are
+// found regardless of the source format.
+export async function parseFile(file, opts = {}) {
+  const name = (file.name || '').toLowerCase()
+  if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.xlsm')) {
+    const XLSX = await import('xlsx')
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+    if (!firstSheet) return { jobs: [], headers: [], mapping: {} }
+    const csv = XLSX.utils.sheet_to_csv(firstSheet, { blankrows: false })
+    return parseCsv(csv, opts)
+  }
+  return parseCsv(file, opts)
+}
+
 // Parse a File (or raw text) into normalised job objects. Returns a Promise.
 export function parseCsv(input, { batchId } = {}) {
   return new Promise((resolve, reject) => {

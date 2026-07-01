@@ -25,6 +25,7 @@ export default function App() {
   const [scope, setScope] = useState('active')
   const [selectedTags, setSelectedTags] = useState([])
   const [selected, setSelected] = useState(() => new Set())
+  const [anchorId, setAnchorId] = useState(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -89,9 +90,34 @@ export default function App() {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+    setAnchorId(id)
   }, [])
 
-  const clearSelection = useCallback(() => setSelected(new Set()), [])
+  // Shift-click: select every job between the anchor and this one, in view order.
+  const selectRange = useCallback((id) => {
+    setSelected((prev) => {
+      const ids = filtered.map((j) => j.id)
+      const anchor = anchorId ?? id
+      const i1 = ids.indexOf(anchor)
+      const i2 = ids.indexOf(id)
+      const next = new Set(prev)
+      if (i1 === -1 || i2 === -1) { next.add(id); return next }
+      const [lo, hi] = i1 < i2 ? [i1, i2] : [i2, i1]
+      for (let k = lo; k <= hi; k++) next.add(ids[k])
+      return next
+    })
+    if (anchorId == null) setAnchorId(id)
+  }, [filtered, anchorId])
+
+  // Drag-box: replace (or, with a modifier, add to) the selection.
+  const applyMarquee = useCallback((ids, additive) => {
+    setSelected((prev) => {
+      if (additive) { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next }
+      return new Set(ids)
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => { setSelected(new Set()); setAnchorId(null) }, [])
 
   const allVisibleSelected = filtered.length > 0 && filtered.every((j) => selected.has(j.id))
   const toggleSelectAll = () => {
@@ -130,7 +156,7 @@ export default function App() {
   }, [selected, updateJob, pushToast])
 
   // Selection only applies to the Jobs list; drop it when the view or scope changes.
-  useEffect(() => { setSelected(new Set()) }, [view, scope])
+  useEffect(() => { setSelected(new Set()); setAnchorId(null) }, [view, scope])
 
   async function handleClear() {
     if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
@@ -273,6 +299,9 @@ export default function App() {
                 onOpen={setActiveJob}
                 selectedIds={selected}
                 onToggleSelect={toggleSelect}
+                onSelectRange={selectRange}
+                onApplyMarquee={applyMarquee}
+                onClearSelection={clearSelection}
               />
             ) : view === 'projects' ? (
               <ProjectsView jobs={filtered} onOpen={setActiveJob} />

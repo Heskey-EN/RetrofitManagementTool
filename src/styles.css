@@ -532,6 +532,9 @@ a.topbar__title:hover { color: var(--brand-ink); }
 }
 
 /* ---------- Multi-select ---------- */
+.grid { position: relative; align-content: start; min-height: 55vh; }
+.grid.is-dragging { user-select: none; }
+.marquee { position: absolute; z-index: 4; border: 1.5px solid var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); border-radius: 4px; pointer-events: none; }
 .card { position: relative; }
 .card__check { position: absolute; top: 8px; left: 8px; z-index: 3; display: flex; opacity: 0; transition: opacity 0.12s; }
 .card:hover .card__check, .grid--selecting .card__check, .card.is-selected .card__check { opacity: 1; }

@@ -12,6 +12,7 @@ import JobView from './components/JobView'
 import AddJobModal from './components/AddJobModal'
 import StageMoveDialog from './components/StageMoveDialog'
 import BulkActionsBar from './components/BulkActionsBar'
+import TemplatesPage from './components/TemplatesPage'
 
 export default function App() {
   const { jobs, loading, error, addJobs, updateJob, clearAll } = useJobs()
@@ -24,6 +25,7 @@ export default function App() {
   const [scope, setScope] = useState('active')
   const [selectedTags, setSelectedTags] = useState([])
   const [selected, setSelected] = useState(() => new Set())
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
   const pushToast = useCallback((t) => {
@@ -149,6 +151,7 @@ export default function App() {
             <span className="mode-chip__dot" />
             {storeMode === 'supabase' ? 'Live sync' : 'Local'}
           </span>
+          <button className="btn" onClick={() => setTemplatesOpen(true)}>Templates</button>
           <CsvUpload variant="compact" onJobs={addJobs} onToast={pushToast} />
           <button className="btn btn--primary" onClick={() => setAddOpen(true)}>
             <span aria-hidden>＋</span> Add job
@@ -287,6 +290,7 @@ export default function App() {
           onUpdate={updateJob}
           onStatusChange={requestStatusChange}
           onArchive={archiveJob}
+          onManageTemplates={() => setTemplatesOpen(true)}
         />
       )}
 
@@ -321,6 +325,8 @@ export default function App() {
           onClear={clearSelection}
         />
       )}
+
+      {templatesOpen && <TemplatesPage onClose={() => setTemplatesOpen(false)} />}
 
       {toast && (
         <div className={`toast toast--${toast.type}`} role="status">{toast.text}</div>

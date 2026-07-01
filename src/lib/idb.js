@@ -5,7 +5,7 @@
 // room — important for PDF uploads.
 
 const DB_NAME = 'rmt'
-const DB_VERSION = 1
+const DB_VERSION = 2
 let dbPromise
 
 function openDB() {
@@ -20,6 +20,10 @@ function openDB() {
       if (!db.objectStoreNames.contains('documents')) {
         const docs = db.createObjectStore('documents', { keyPath: 'id' })
         docs.createIndex('job_id', 'job_id', { unique: false })
+      }
+      // v2: reusable output-document templates (PDF blob + field mapping).
+      if (!db.objectStoreNames.contains('templates')) {
+        db.createObjectStore('templates', { keyPath: 'id' })
       }
     }
     req.onsuccess = () => resolve(req.result)

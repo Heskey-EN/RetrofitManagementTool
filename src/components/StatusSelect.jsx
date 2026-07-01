@@ -1,4 +1,4 @@
-import { STATUSES, statusColor } from '../lib/status'
+import { STATUSES, statusColor, statusLabel } from '../lib/status'
 
 // A compact status pill that colours itself to match the current stage.
 export default function StatusSelect({ value, onChange, size = 'md' }) {
@@ -12,7 +12,7 @@ export default function StatusSelect({ value, onChange, size = 'md' }) {
         onClick={(e) => e.stopPropagation()}
       >
         {STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>{s.value}</option>
+          <option key={s.value} value={s.value}>{s.label}</option>
         ))}
       </select>
     </span>

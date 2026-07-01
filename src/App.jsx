@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useJobs } from './hooks/useJobs'
 import { storeMode } from './lib/jobsStore'
-import { statusIndex } from './lib/status'
+import { statusIndex, statusLabel } from './lib/status'
 import { jobReference, jobPostcode, jobCustomer, jobMeasure } from './lib/display'
 import Pipeline from './components/Pipeline'
 import CsvUpload from './components/CsvUpload'
@@ -20,6 +20,8 @@ export default function App() {
   const [activeJob, setActiveJob] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
   const [stageMove, setStageMove] = useState(null)
+  const [scope, setScope] = useState('active')
+  const [selectedTags, setSelectedTags] = useState([])
   const [toast, setToast] = useState(null)
 
   const pushToast = useCallback((t) => {
@@ -28,18 +30,31 @@ export default function App() {
     pushToast._t = window.setTimeout(() => setToast(null), 4500)
   }, [])
 
+  const activeJobs = useMemo(() => jobs.filter((j) => !j.archived), [jobs])
+  const archivedCount = jobs.length - activeJobs.length
+
+  const allTags = useMemo(() => {
+    const set = new Set()
+    for (const j of jobs) for (const t of j.tags || []) set.add(t)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [jobs])
+
   const filtered = useMemo(() => {
+    const base = scope === 'archived' ? jobs.filter((j) => j.archived) : activeJobs
     const q = query.trim().toLowerCase()
-    return jobs.filter((job) => {
+    return base.filter((job) => {
       if (statusFilter && job.status !== statusFilter) return false
+      if (selectedTags.length && !selectedTags.some((t) => (job.tags || []).includes(t))) return false
       if (!q) return true
       const haystack = [
         job.title, jobReference(job), jobPostcode(job), jobCustomer(job), jobMeasure(job),
-        ...Object.values(job.data || {}),
+        ...(job.tags || []), ...Object.values(job.data || {}),
       ].join(' ').toLowerCase()
       return haystack.includes(q)
     })
-  }, [jobs, query, statusFilter])
+  }, [jobs, activeJobs, scope, query, statusFilter, selectedTags])
+
+  const toggleTag = (t) => setSelectedTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
 
   const openJob = useMemo(
     () => (activeJob ? jobs.find((j) => j.id === activeJob.id) || activeJob : null),
@@ -57,6 +72,12 @@ export default function App() {
     }
   }, [updateJob])
 
+  const archiveJob = useCallback((job) => {
+    updateJob(job.id, { archived: !job.archived })
+    setActiveJob(null)
+    pushToast({ type: 'success', text: job.archived ? 'Job restored to active.' : 'Job archived.' })
+  }, [updateJob, pushToast])
+
   async function handleClear() {
     if (window.confirm('Remove all jobs and their documents? This cannot be undone.')) {
       await clearAll()
@@ -70,7 +91,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="topbar__title">Retrofit Project Management Tool</div>
+        <a className="topbar__title" href="#/" title="Back to home">Retrofit Project Management Tool</a>
         <div className="topbar__actions">
           <span className={`mode-chip mode-chip--${storeMode}`} title={storeMode === 'supabase' ? 'Live multi-user sync' : 'Stored locally in this browser'}>
             <span className="mode-chip__dot" />
@@ -87,7 +108,7 @@ export default function App() {
 
       <main className="shell">
         {jobs.length > 0 && (
-          <Pipeline jobs={jobs} activeStatus={statusFilter} onSelect={setStatusFilter} />
+          <Pipeline jobs={activeJobs} activeStatus={statusFilter} onSelect={setStatusFilter} />
         )}
 
         {showEmptyHero ? (
@@ -142,16 +163,43 @@ export default function App() {
                   </div>
                 )}
                 <span className="board__count">
-                  {filtered.length}<span className="board__count-of"> / {jobs.length}</span>
+                  {filtered.length}<span className="board__count-of"> / {scope === 'archived' ? archivedCount : activeJobs.length}</span>
                 </span>
+                {(archivedCount > 0 || scope === 'archived') && (
+                  <button
+                    className={`btn btn--sm${scope === 'archived' ? ' btn--primary' : ' btn--ghost'}`}
+                    onClick={() => setScope(scope === 'archived' ? 'active' : 'archived')}
+                  >
+                    {scope === 'archived' ? 'Active jobs' : `Archived${archivedCount ? ` (${archivedCount})` : ''}`}
+                  </button>
+                )}
                 <button className="btn btn--ghost btn--sm" onClick={handleClear}>Clear all</button>
               </div>
             </div>
 
-            {statusFilter && (
-              <div className="filter-note">
-                Showing <strong>{statusFilter}</strong>
-                <button className="filter-note__clear" onClick={() => setStatusFilter(null)}>clear</button>
+            {(statusFilter || allTags.length > 0) && (
+              <div className="filters">
+                {statusFilter && (
+                  <span className="filter-note">
+                    Stage: <strong>{statusLabel(statusFilter)}</strong>
+                    <button className="filter-note__clear" onClick={() => setStatusFilter(null)}>clear</button>
+                  </span>
+                )}
+                {allTags.length > 0 && (
+                  <div className="filters__tags">
+                    <span className="filters__label">Tags</span>
+                    {allTags.map((t) => (
+                      <button
+                        key={t}
+                        className={`tag tag--toggle${selectedTags.includes(t) ? ' is-on' : ''}`}
+                        onClick={() => toggleTag(t)}
+                      >{t}</button>
+                    ))}
+                    {selectedTags.length > 0 && (
+                      <button className="filter-note__clear" onClick={() => setSelectedTags([])}>clear</button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -174,6 +222,7 @@ export default function App() {
           onClose={() => setActiveJob(null)}
           onUpdate={updateJob}
           onStatusChange={requestStatusChange}
+          onArchive={archiveJob}
         />
       )}
 

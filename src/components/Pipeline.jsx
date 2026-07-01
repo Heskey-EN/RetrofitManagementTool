@@ -44,7 +44,7 @@ export default function Pipeline({ jobs, activeStatus, onSelect }) {
               >
                 <span className="pipeline__index">{String(i + 1).padStart(2, '0')}</span>
                 <span className="pipeline__count">{count}</span>
-                <span className="pipeline__label">{s.value}</span>
+                <span className="pipeline__label">{s.label}</span>
                 <span className="pipeline__meter" aria-hidden>
                   <span
                     className="pipeline__meter-fill"

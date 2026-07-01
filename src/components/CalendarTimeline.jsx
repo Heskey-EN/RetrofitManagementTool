@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { statusColor } from '../lib/status'
+import { statusColor, statusLabel } from '../lib/status'
 import { jobAddress, jobReference } from '../lib/display'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -107,7 +107,7 @@ export default function CalendarTimeline({ jobs, onOpen }) {
                       className="timeline__bar"
                       style={{ left: offset * DAY_WIDTH, width: span * DAY_WIDTH - 5, background: statusColor(job.status) }}
                       onClick={() => onOpen(job)}
-                      title={`${address} — ${job.status}`}
+                      title={`${address} — ${statusLabel(job.status)}`}
                     >
                       <span className="timeline__bar-label">{address}</span>
                     </button>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { groupProjects } from '../lib/projects'
-import { STATUSES, statusColor } from '../lib/status'
+import { STATUSES, statusColor, statusLabel } from '../lib/status'
 import { jobAddress, jobReference, jobPostcode } from '../lib/display'
 
 // Jobs grouped into projects by road + postcode. Multi-property projects are
@@ -66,7 +66,7 @@ export default function ProjectsView({ jobs, onOpen }) {
                         <span className="project__job-addr">{jobAddress(job)}</span>
                         {ref && <span className="project__job-ref mono">{ref}</span>}
                         <span className="project__job-pc mono">{jobPostcode(job)}</span>
-                        <span className="project__job-stage">{job.status}</span>
+                        <span className="project__job-stage">{statusLabel(job.status)}</span>
                       </li>
                     )
                   })}

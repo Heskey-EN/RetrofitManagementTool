@@ -32,6 +32,11 @@ export default function JobCard({ job, onStatusChange, onOpen }) {
           {postcode && <span className="mono card__postcode">{postcode}</span>}
           {customer && <span className="card__customer">{customer}</span>}
         </div>
+        {job.tags?.length > 0 && (
+          <div className="card__tags">
+            {job.tags.map((t) => <span key={t} className="tag tag--sm">{t}</span>)}
+          </div>
+        )}
         <div className="card__foot">
           <span className="card__dates mono">
             {start ? (

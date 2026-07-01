@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { STATUSES, DEFAULT_STATUS } from '../lib/status'
+import TagInput from './TagInput'
 
 // Modal form for creating a single job by hand. The property address is the
 // job's identity (its headline everywhere in the app), so it leads the form.
@@ -13,6 +14,7 @@ export default function AddJobModal({ onClose, onCreate }) {
     status: DEFAULT_STATUS,
     start_date: '',
     end_date: '',
+    tags: [],
   })
   const [saving, setSaving] = useState(false)
 
@@ -44,6 +46,7 @@ export default function AddJobModal({ onClose, onCreate }) {
       customer: form.customer.trim(),
       measure: form.measure.trim(),
       status: form.status,
+      tags: form.tags,
       start_date: form.start_date || null,
       end_date: form.end_date || form.start_date || null,
       data,
@@ -92,7 +95,7 @@ export default function AddJobModal({ onClose, onCreate }) {
               <span>Stage</span>
               <select value={form.status} onChange={set('status')}>
                 {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.value}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </label>
@@ -106,6 +109,10 @@ export default function AddJobModal({ onClose, onCreate }) {
                 <input type="date" value={form.end_date} onChange={set('end_date')} />
               </label>
             </div>
+          </div>
+          <div className="field field--full">
+            <span>Tags</span>
+            <TagInput value={form.tags} onChange={(tags) => setForm((f) => ({ ...f, tags }))} placeholder="e.g. SHDF, EWI, Priority" />
           </div>
           <div className="modal__actions">
             <button type="button" className="btn" onClick={onClose}>Cancel</button>

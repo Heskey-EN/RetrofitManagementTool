@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDocuments } from '../hooks/useDocuments'
 import { jobAddress } from '../lib/display'
-import { statusColor } from '../lib/status'
+import { statusColor, statusLabel } from '../lib/status'
 
 // Guards advancing a job to a later stage. First asks whether the relevant
 // documents for the current stage are uploaded; if not, asks the user to
@@ -27,26 +27,26 @@ export default function StageMoveDialog({ job, toStatus, onConfirm, onCancel }) 
       <div className="modal modal--sm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Move job stage">
         <div className="confirm">
           <div className="confirm__stages">
-            <span className="confirm__stage" style={{ '--status-color': statusColor(fromStatus) }}>{fromStatus}</span>
+            <span className="confirm__stage" style={{ '--status-color': statusColor(fromStatus) }}>{statusLabel(fromStatus)}</span>
             <span className="confirm__arrow" aria-hidden>→</span>
-            <span className="confirm__stage" style={{ '--status-color': statusColor(toStatus) }}>{toStatus}</span>
+            <span className="confirm__stage" style={{ '--status-color': statusColor(toStatus) }}>{statusLabel(toStatus)}</span>
           </div>
 
           {step === 'ask' ? (
             <>
               <h2 className="confirm__title">Have all the relevant documents been uploaded?</h2>
               <p className="confirm__text">
-                Before moving <strong>{jobAddress(job)}</strong> to <strong>{toStatus}</strong>, confirm the
-                documents for the <strong>{fromStatus}</strong> stage are in place.
+                Before moving <strong>{jobAddress(job)}</strong> to <strong>{statusLabel(toStatus)}</strong>, confirm the
+                documents for the <strong>{statusLabel(fromStatus)}</strong> stage are in place.
               </p>
               <p className="confirm__meta">
                 {fileCount === 0
-                  ? `No files in ${fromStatus} yet.`
-                  : `${fileCount} file${fileCount === 1 ? '' : 's'} in ${fromStatus}.`}
+                  ? `No files in ${statusLabel(fromStatus)} yet.`
+                  : `${fileCount} file${fileCount === 1 ? '' : 's'} in ${statusLabel(fromStatus)}.`}
               </p>
               <div className="confirm__actions">
                 <button className="btn" onClick={() => setStep('confirm')}>No, not yet</button>
-                <button className="btn btn--primary" onClick={onConfirm}>Yes, move to {toStatus}</button>
+                <button className="btn btn--primary" onClick={onConfirm}>Yes, move to {statusLabel(toStatus)}</button>
               </div>
             </>
           ) : (

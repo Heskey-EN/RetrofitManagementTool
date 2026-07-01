@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useDocuments } from '../hooks/useDocuments'
 import { documentsStore } from '../lib/documentsStore'
-import { STATUS_VALUES, statusColor } from '../lib/status'
+import { STATUS_VALUES, statusColor, statusLabel } from '../lib/status'
 
 const MASTER = 'Master'
 
@@ -84,7 +84,7 @@ export default function DocumentsPanel({ jobId, jobStatus, mode = 'files' }) {
             onClick={() => setFolder(f)}
           >
             {f !== MASTER && <span className="docs__folder-dot" />}
-            {f === MASTER ? 'All' : f}
+            {f === MASTER ? 'All' : statusLabel(f)}
             <span className="docs__folder-count">{counts[f] ?? 0}</span>
           </button>
         ))}
@@ -113,7 +113,7 @@ export default function DocumentsPanel({ jobId, jobStatus, mode = 'files' }) {
             />
             <button className="btn btn--sm" onClick={() => fileRef.current?.click()}>⬆ Upload file</button>
             <button className="btn btn--sm" onClick={() => setLinkOpen((v) => !v)}>🔗 Add link</button>
-            <span className="docs__target">into <strong>{targetFolder}</strong></span>
+            <span className="docs__target">into <strong>{statusLabel(targetFolder)}</strong></span>
           </div>
           {linkOpen && (
             <form className="docs__link-form" onSubmit={onAddLink}>
@@ -129,7 +129,7 @@ export default function DocumentsPanel({ jobId, jobStatus, mode = 'files' }) {
         <p className="docs__empty">
           {folder === MASTER
             ? isNotes ? 'No notes yet.' : 'No files yet.'
-            : `Nothing in ${folder} yet.`}
+            : `Nothing in ${statusLabel(folder)} yet.`}
         </p>
       ) : (
         <ul className="docs__list">
@@ -164,7 +164,7 @@ export default function DocumentsPanel({ jobId, jobStatus, mode = 'files' }) {
                       onChange={(e) => move(doc.id, e.target.value)}
                       title="Move to folder"
                     >
-                      {STATUS_VALUES.map((s) => (<option key={s} value={s}>{s}</option>))}
+                      {STATUS_VALUES.map((s) => (<option key={s} value={s}>{statusLabel(s)}</option>))}
                     </select>
                   )}
                 </span>

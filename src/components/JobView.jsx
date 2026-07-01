@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import StatusSelect from './StatusSelect'
 import DocumentsPanel from './DocumentsPanel'
+import CostingPanel from './CostingPanel'
+import TagInput from './TagInput'
 import { jobAddress, jobReference, jobPostcode, jobCustomer, jobMeasure } from '../lib/display'
 
 // Full-screen view for a single property: identity + stage + schedule at the
 // top, then two boxes side by side — Notes and Files — each organised by stage.
-export default function JobView({ job, onClose, onUpdate, onStatusChange }) {
+export default function JobView({ job, onClose, onUpdate, onStatusChange, onArchive }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -32,7 +34,14 @@ export default function JobView({ job, onClose, onUpdate, onStatusChange }) {
         <button className="jobview__back" onClick={onClose}>
           <span aria-hidden>←</span> All jobs
         </button>
-        <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
+        <div className="jobview__top-actions">
+          {onArchive && (
+            <button className="btn btn--ghost btn--sm" onClick={() => onArchive(job)}>
+              {job.archived ? 'Unarchive' : 'Archive'}
+            </button>
+          )}
+          <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
       </header>
 
       <div className="jobview__inner">
@@ -49,6 +58,10 @@ export default function JobView({ job, onClose, onUpdate, onStatusChange }) {
               ))}
             </div>
           )}
+          <div className="jobview__tags">
+            <span className="jobview__chip-label">Tags</span>
+            <TagInput value={job.tags || []} onChange={(tags) => onUpdate(job.id, { tags })} />
+          </div>
         </div>
 
         <div className="jobview__controls">
@@ -78,6 +91,12 @@ export default function JobView({ job, onClose, onUpdate, onStatusChange }) {
             <DocumentsPanel jobId={job.id} jobStatus={job.status} mode="files" />
           </section>
         </div>
+
+        <section className="jobview__box jobview__box--wide">
+          <h2 className="jobview__box-title">Costing</h2>
+          <p className="jobview__box-hint">Coordination / Design — list each item and its cost, then enter the projected revenue to see the profit.</p>
+          <CostingPanel costing={job.costing} onSave={(costing) => onUpdate(job.id, { costing })} />
+        </section>
 
         {extraFields.length > 0 && (
           <section className="jobview__box jobview__box--wide">

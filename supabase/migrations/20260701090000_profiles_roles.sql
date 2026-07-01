@@ -57,7 +57,9 @@ $$;
 create or replace function public.guard_profile_changes()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_admin() then
+  -- Only block real signed-in non-admins. When auth.uid() is null (SQL editor /
+  -- service role) allow the change so the first admin can be bootstrapped.
+  if auth.uid() is not null and not public.is_admin() then
     new.role := old.role;
     new.status := old.status;
   end if;
